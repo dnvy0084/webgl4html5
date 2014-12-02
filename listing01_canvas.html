@@ -11,17 +11,27 @@
 	</style>
 	<!-- shader source : innerHTML -->
 	<script id="shader-vs" type="x-shader/x-vertex">
+		
 		attribute vec3 position;
+		attribute vec3 color;
+
+		varying highp vec4 fColor;
+
 		void main( void )
 		{
+			gl_PointSize = 1.0;
 			gl_Position = vec4( position, 1.0 );
+
+			fColor = vec4( color, 1.0 );
 		}
 	</script>
 
 	<script id="shader-fs" type="x-shader/x-fragment">
+		varying highp vec4 fColor;
+
 		void main( void )
 		{
-			gl_FragColor = vec4( 1.0, 0.0, 0.0, 1.0 );
+			gl_FragColor = fColor;
 		}
 	</script>
 	<script type="text/javascript">
@@ -61,6 +71,8 @@
 			{
 				gl.clearColor( 0, 0, 0, 1 );
 				gl.clear( gl.COLOR_BUFFER_BIT );
+
+				gl.viewport( 0, 0, canvas.width, canvas.height );
 			}
 
 			function initShaders()
@@ -102,13 +114,13 @@
 
 			function setupBuffers()
 			{
-				var r = 0.5;
+				var r = 1.0;
 
 				var vertices = 
 				[
-					0, r, 0,
-					-r, -r, 0,
-					r, -r, 0
+					0, r, 0,		1.0, 0.0, 0.0,
+					-r, -r, 0,		0.0, 1.0, 0.0, 
+					r, -r, 0,		0.0, 0.0, 1.0
 				];
 
 				vertexBuffer = gl.createBuffer();
@@ -120,10 +132,14 @@
 			function drawScene()
 			{
 				var attrPos = gl.getAttribLocation( program, "position" );
+				var color = gl.getAttribLocation( program, "color" );
+
 				gl.enableVertexAttribArray( attrPos );
+				gl.enableVertexAttribArray( color );
 
 				gl.bindBuffer( gl.ARRAY_BUFFER, vertexBuffer );
-				gl.vertexAttribPointer( attrPos, 3, gl.FLOAT, false, 0, 0 );
+				gl.vertexAttribPointer( attrPos, 3, gl.FLOAT, false, 4 * 3, 4 * 0 );
+				gl.vertexAttribPointer( color, 3, gl.FLOAT, false, 4 * 3, 4 * 3 );
 				gl.drawArrays( gl.TRIANGLES, 0, 3 );
 			}
 
