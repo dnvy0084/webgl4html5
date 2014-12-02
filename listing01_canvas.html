@@ -9,6 +9,7 @@
 			height: 760;
 		}
 	</style>
+	<script type="text/javascript" src="gl-matrix.js"></script>
 	<!-- shader source : innerHTML -->
 	<script id="shader-vs" type="x-shader/x-vertex">
 		
@@ -17,10 +18,13 @@
 
 		varying highp vec4 fColor;
 
+		uniform mat4 matMV;
+		uniform mat4 matProj;
+
 		void main( void )
 		{
-			gl_PointSize = 1.0;
-			gl_Position = vec4( position, 1.0 );
+			gl_Position = matProj * matMV * vec4( position, 1.0 );
+			// gl_Position = vec4( position, 1.0 );
 
 			fColor = vec4( color, 1.0 );
 		}
@@ -42,7 +46,9 @@
 				program = null,
 				fragmentShader = null,
 				vertexShader = null,
-				vertexBuffer = null;
+				vertexBuffer = null,
+				projectionMat = null,
+				mvMat = null;
 
 
 			function init()
@@ -61,19 +67,37 @@
 					return;
 				}
 
-				setupWebgl();
+				gl.viewport( 0, 0, canvas.width, canvas.height );
+
+				initMat();
 				initShaders();
 				setupBuffers();
-				drawScene();
+				getMatrixUniform();
+
+				(function render()
+				{
+					setupWebgl();
+					setMatrixUniform();
+					drawScene();
+					requestAnimationFrame( render );
+				})();
 			}
 
-			function setupWebgl()
+			function initMat()
 			{
-				gl.clearColor( 0, 0, 0, 1 );
-				gl.clear( gl.COLOR_BUFFER_BIT );
+				projectionMat = mat4.create();
+				mvMat = mat4.create();
 
-				gl.viewport( 0, 0, canvas.width, canvas.height );
+				mat4.perspective( 45, canvas.width / canvas.height, 0.1, 1000.0, projectionMat );
+				mat4.identity( mvMat );
+
+				var vec = vec3.create();
+				vec[2] = 0.0;
+
+				//mat4.translate( mvMat, mvMat, vec );
 			}
+
+			
 
 			function initShaders()
 			{
@@ -110,17 +134,25 @@
 				} 
 
 				gl.useProgram( program );
+
+				console.log( program );
+
+				for( var s in program )
+					console.log( s, program[s] );
 			}
 
 			function setupBuffers()
 			{
-				var r = 1.0;
+				var r = 0.5;
 
 				var vertices = 
 				[
-					0, r, 0,		1.0, 0.0, 0.0,
-					-r, -r, 0,		0.0, 1.0, 0.0, 
-					r, -r, 0,		0.0, 0.0, 1.0
+					0, r, 0,		
+					-r, -r, 0,		
+					r, -r, 0,		
+					1.0, 0.0, 0.0,
+					0.0, 1.0, 0.0,
+					0.0, 0.0, 1.0
 				];
 
 				vertexBuffer = gl.createBuffer();
@@ -129,17 +161,36 @@
 				gl.bufferData( gl.ARRAY_BUFFER, new Float32Array( vertices ), gl.STATIC_DRAW );
 			}
 
+			function setupWebgl()
+			{
+				gl.clearColor( 0, 0, 0, 1 );
+				gl.clear( gl.COLOR_BUFFER_BIT );
+			}
+
+			function getMatrixUniform()
+			{
+				program.pMatrixUniform = gl.getUniformLocation( program, "matPro2" );
+				program.mvMatrixUniform = gl.getUniformLocation( program, "matMV" );
+			}
+
+			function setMatrixUniform()
+			{
+				gl.uniformMatrix4fv( program.pMatrixUniform, false, projectionMat );
+				gl.uniformMatrix4fv( program.mvMatrixUniform, false, mvMat );
+			}
+
 			function drawScene()
 			{
-				var attrPos = gl.getAttribLocation( program, "position" );
+				var position = gl.getAttribLocation( program, "position" );
 				var color = gl.getAttribLocation( program, "color" );
 
-				gl.enableVertexAttribArray( attrPos );
+				gl.enableVertexAttribArray( position );
 				gl.enableVertexAttribArray( color );
 
 				gl.bindBuffer( gl.ARRAY_BUFFER, vertexBuffer );
-				gl.vertexAttribPointer( attrPos, 3, gl.FLOAT, false, 4 * 3, 4 * 0 );
-				gl.vertexAttribPointer( color, 3, gl.FLOAT, false, 4 * 3, 4 * 3 );
+				gl.vertexAttribPointer( position, 3, gl.FLOAT, false, 0, 4 * 0 );
+				gl.vertexAttribPointer( color, 3, gl.FLOAT, false, 0, 4 * 9 );
+
 				gl.drawArrays( gl.TRIANGLES, 0, 3 );
 			}
 
