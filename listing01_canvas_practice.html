@@ -1,0 +1,101 @@
+<html>
+<head>
+	<title>list01_canvas_practice</title>
+</head>
+<style type="text/css">
+	canvas
+	{
+		background-color: black;
+		width: 1024;
+		height: 768;
+	}
+</style>
+<script type="text/javascript">
+	(function(){
+
+		var canvas,
+			gl;
+
+		function init()
+		{
+			canvas = document.getElementById( "webgl_canvas" );
+
+			initWebGL();
+		}
+
+		function initWebGL()
+		{
+			gl = canvas.getContext( "webgl" );
+
+			gl.viewport( 0, 0, canvas.width, canvas.height );
+
+			makeShaders();
+		}
+
+		function makeShaders()
+		{
+			var vertexSource = document.getElementById( "vertex_source" ).innerHTML;
+			var fragmentSource = document.getElementById( "fragment_source" ).innerHTML;
+
+			var vertexShader = gl.createShader( gl.VERTEX_SHADER );
+			var fragmentShader = gl.createShader( gl.FRAGMENT_SHADER );
+
+			gl.shaderSource( vertexShader, vertexSource );
+			gl.shaderSource( fragmentShader, fragmentSource );
+
+			gl.compileShader( vertexShader );
+			gl.compileShader( fragmentShader );
+
+			gl.clear( gl )
+		}
+
+		function createShader( type, source )
+		{
+			var shader = gl.createShader( type );
+
+			gl.shaderSource( shader, source );
+			gl.compileShader( shader );
+
+			if ( gl.getShaderParameter( shader, gl. );) {} else{};
+		}
+
+		window.onload = init;
+
+	})();
+</script>
+
+<script id="vertex_source" type="x-shader/x-vertex">
+	attribute vec3 vertex;
+	attribute vec3 vertexColor;
+
+	uniform mat4 modelView;
+	uniform mat4 projection;
+
+	varying vec4 pixelColor;
+
+	void main( void )
+	{
+		pixelColor = vec4( vertexColor, 1.0 );
+
+		gl_Position = vec4( vertex, 1.0 );
+	}
+</script>
+
+<script id="fragment_source" type="x-shader/x-fragment">
+	
+	attribute vec4 pixelColor;
+
+	void main( void )
+	{
+		gl_FragColor = pixelColor;
+	}
+
+</script>
+
+<body>
+	<div class="wrapper">
+		<canvas id="webgl_canvas">Your Browser doen`t support webgl</canvas>
+	</div>
+</body>
+</html>
+
