@@ -10,6 +10,7 @@
 		height: 768;
 	}
 </style>
+<script src="gl-matrix.js" type="text/javascript"></script>
 <script type="text/javascript">
 	(function(){
 
@@ -19,6 +20,11 @@
 		var vertexShader,
 			fragmentShader,
 			program;
+
+		var vertexBuffer;
+
+		var projectionMat,
+			modelViewMat;
 
 		function init()
 		{
@@ -32,9 +38,11 @@
 			gl = canvas.getContext( "webgl" );
 
 			gl.viewport( 0, 0, canvas.width, canvas.height );
+			gl.clearColor( 0.1, 0.1, 0.1, 1 );
 
 			initBuffers();
 			initShaders();
+			initMatrices();
 
 			(function render(){
 				setUniforms();
@@ -42,22 +50,55 @@
 				drawScene();
 
 				requestAnimationFrame( render, canvas );
-			})()
+			})();
 		}
+
+		function initMatrices()
+		{
+			projectionMat = mat4.create();
+			mat4.perspective( projectionMat, 45, canvas.width / canvas.height, 0.1, 1000.0 );
+
+			modelViewMat = mat4.create();
+		};
+
+		var count = 0;
 
 		function setUniforms()
 		{
-				
+			var modelView = gl.getUniformLocation( program, "modelView" );
+			var projection = gl.getUniformLocation( program, "projection" );
+
+			mat4.identity( modelViewMat );
+
+			mat4.translate( modelViewMat, modelViewMat, [ 0, 0, -6 + -5 * Math.cos( count / 100 ), 1 ] );
+			mat4.rotate( modelViewMat, modelViewMat, count / 100, [ 0, 1, 0 ] );
+
+			count++;
+
+			gl.uniformMatrix4fv( modelView, false, modelViewMat );
+			gl.uniformMatrix4fv( projection, false, projectionMat );
 		};
 
 		function setAttributes()
 		{
-				
+			linkBufferToPointer( program, "vertex", vertexBuffer, 3, 0, 0, gl.FLOAT );
+			linkBufferToPointer( program, "vertexColor", vertexBuffer, 3, 0, 4 * 3, gl.FLOAT );
+		};
+
+		function linkBufferToPointer( program, name, buffer, nSize, nStride, nOffset, eType )
+		{
+			var location = gl.getAttribLocation( program, name );
+
+			gl.enableVertexAttribArray( location );
+			gl.bindBuffer( gl.ARRAY_BUFFER, buffer );
+			gl.vertexAttribPointer( location, nSize, eType, false, nStride, nOffset );
 		};
 
 		function drawScene()
 		{
-			
+			gl.clear( gl.COLOR_BUFFER_BIT );
+
+			gl.drawArrays( gl.TRIANGLES, 0, 3 );	
 		};
 
 		function initBuffers()
@@ -68,10 +109,13 @@
 			[
 				-r, -r, 0.0,
 				0, r, 0.0, 
-				r, -r, 0.0
+				r, -r, 0.0, 
+				1, 0, 0,
+				0, 1, 0,
+				0, 0, 1
 			];
 
-			var vertexBuffer = gl.createBuffer();
+			vertexBuffer = gl.createBuffer();
 
 			gl.bindBuffer( gl.ARRAY_BUFFER, vertexBuffer );
 			gl.bufferData( gl.ARRAY_BUFFER, new Float32Array( vertices ), gl.STATIC_DRAW );
@@ -79,9 +123,7 @@
 
 		function initShaders()
 		{
-			console.log( "a", document.getElementById( "vertex_source" ).innerHTML );
 			vertexShader = makeShader( gl.VERTEX_SHADER, document.getElementById( "vertex_source" ).innerHTML );
-			console.log( "b" );
 			fragmentShader = makeShader( gl.FRAGMENT_SHADER, document.getElementById( "fragment_source" ).innerHTML );
 
 			program = gl.createProgram();
@@ -131,17 +173,17 @@
 	{
 		pixelColor = vec4( vertexColor, 1.0 );
 
-		gl_Position = vec4( vertex, 1.0 );
+		gl_Position = projection * modelView * vec4( vertex, 1.0 );
 	}
 </script>
 
 <script id="fragment_source" type="x-shader/x-fragment">
 	
-	//varying vec4 pixelColor;
+	varying highp vec4 pixelColor;
 
 	void main( void )
 	{
-		gl_FragColor = vec4( 1.0, 0.0, 0.0, 1.0 );//pixelColor;
+		gl_FragColor = pixelColor;
 	}
 
 </script>
