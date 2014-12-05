@@ -39,6 +39,9 @@
 		}
 	</script>
 	<script type="text/javascript">
+
+		var _GL;
+
 		(function()
 		{
 			var canvas = null,
@@ -55,7 +58,7 @@
 			{
 				canvas = window.document.getElementById( "canvas" );
 				gl = canvas.getContext( "webgl" );
-
+				_GL = gl;
 				initGL();
 			}
 
