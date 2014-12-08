@@ -1,0 +1,64 @@
+<html>
+<head>
+	<title>auto completion generator</title>
+</head>
+<script type="text/javascript">
+	(function(){
+		
+		var files;
+
+		function init()
+		{
+			console.log( "init" );
+
+			var fileDom = document.getElementById( "file" );
+
+			fileDom.addEventListener( "change", onFileSelect );
+		};
+
+		function onFileSelect( e )
+		{
+			files = document.getElementById( "file" ).files;
+
+			readFile( files[0] );
+		};
+
+		function readFile( file )
+		{
+			var reader = new FileReader();
+
+			reader.onprogress = function( e )
+			{
+				console.log( e );
+			}
+
+			reader.onload = function( e )
+			{
+				var result = e.target.result;
+
+				var result = result.replace( /\/\/[^\n]+/g, "" );
+				var result = result.replace( /\/\*[^\/]+\*\//g, "" );
+				//var result = result.replace( /\s+/g, "" );
+				var result = result.replace( /\{[^\}]+\}/g, "" );
+
+				console.log( result );
+			}
+
+			reader.onerror = function( e )
+			{
+				console.log( e );
+			}
+
+			reader.readAsText( file, "UTF-8" );
+		};
+
+		window.onload = init;
+
+	})();
+</script>
+<body>
+	<div class="wrapper">
+		<input type="file" id="file">
+	</div>
+</body>
+</html>

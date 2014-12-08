@@ -1,0 +1,61 @@
+<html>
+<head>
+	<title>Cube practice</title>
+	<style type="text/css">
+		canvas
+		{
+			background-color: black;
+			width: 1024;
+			height: 768;
+			position: absolute;
+		}
+
+		.frameRate
+		{
+			color: white;
+			position: absolute;
+		}
+	</style>
+	<script type="text/javascript" src="gl-matrix.js"></script>
+	<script type="text/javascript" src="js/CubePracticeMain.js"></script>
+	
+	<script type="x-shader/x-vertex" id="vertexShader">
+		attribute vec3 position;
+		attribute vec3 color;
+
+		varying highp vec4 fragColor;
+		varying highp vec3 normal;
+
+		uniform mat4 transform;
+
+		void main( void )
+		{
+			gl_Position = transform * vec4( position, 1.0 );
+
+			fragColor = vec4( color, 1.0 );
+			normal = normalize( position );
+		}
+	</script>
+	
+	<script type="x-shader/x-fragment" id="fragmentShader">
+
+		varying highp vec4 fragColor;
+		varying highp vec3 normal;
+
+		uniform lowp vec3 light;
+		uniform lowp vec4 ambient;
+
+		void main( void )
+		{
+			gl_FragColor = vec4( 0.8, 0.0, 0.0, 1.0 ) * max( 0.0, dot( normal, light ) ) + ambient;
+		}
+	</script>
+
+</head>
+<body>
+	<div class="wrapper">
+		<div id="frameRate">00</div>
+		<canvas id="canvas">Your Browser does not support webgl</canvas>
+	</div>
+</body>
+</html>
