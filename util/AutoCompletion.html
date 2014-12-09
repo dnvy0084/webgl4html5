@@ -36,12 +36,61 @@
 			{
 				var result = e.target.result;
 
-				var result = result.replace( /\/\/[^\n]+/g, "" );
-				var result = result.replace( /\/\*[^\/]+\*\//g, "" );
-				//var result = result.replace( /\s+/g, "" );
-				var result = result.replace( /\{[^\}]+\}/g, "" );
+				var a = result.match( /[0-9a-zA-Z.=_ ]{0,}(function\(){1,1}[0-9a-zA-Z.:\(\), ]+/g );
+				var b = [];
 
-				console.log( result );
+				function getTabenabledFormat( string )
+				{
+					var match = string.match( /\([\w,]+\)/g );
+
+					if( match == null ) 
+						return string;
+
+					var args = match[0].match( /\w+/g );
+
+					//${1:some text}
+
+					for (var i = 0; i < args.length; i++) 
+					{
+						args[i] = "${" + ( i + 1 ) + ":" + args[i] + "}";
+					};
+
+					string = string.replace( /\([\w,]+\)/g, "( " + args.join( ", " ) + " )" );
+
+					console.log( string );
+
+					return string;
+				}
+
+
+				for( var i = a.length; --i; ) 
+				{
+					var s = a[i].replace( /\s+/g, "" );
+
+					if( s.indexOf( "function(" ) == 0 || s.indexOf( "return" ) == 0 )
+						continue;
+
+					//{ "trigger": "drawingBufferHeight", "contents": "drawingBufferHeight" },
+					s = s.replace( /=function/g, "" );
+
+					s = "{ \"trigger\": \"" + s.match( /\w+.\w+/g )[0] + "\", \"contents\": \"" + getTabenabledFormat(s) + "\" }";
+
+					b.unshift( s );
+				};
+
+				var json = [ 
+					"{", 
+						"\t\"scope\": \"source.js\",",
+						"\t\"completions\":",
+						"\t[",
+						"Insert",
+						"\t]",
+					"}"
+				];
+
+				json.splice( json.indexOf( "Insert" ), 1, b.join( ",\n" ) );
+
+				console.log( json.join( "\n" ) );
 			}
 
 			reader.onerror = function( e )

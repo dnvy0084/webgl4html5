@@ -56,25 +56,40 @@
 			-r, -r, -r,	1, 1, 0
 		];
 
-		vertexBuffer = gl.createBuffer();
-		gl.bindBuffer( gl.ARRAY_BUFFER, vertexBuffer );
-		gl.bufferData( gl.ARRAY_BUFFER, new Float32Array( vertices ), gl.STATIC_DRAW );
-
 		var indices = [
 			0, 1, 2,  	0, 2, 3, //front
 			4, 5, 6, 	4, 6, 7, //back
 			1, 5, 6, 	1, 6, 2, //left
 			0, 4, 7,	0, 7, 3, //right
-			0, 4, 5, 	0, 4, 1, //top
-			3, 7, 2,	3, 6, 2, //bottom
+			4, 5, 1, 	4, 1, 0, //top
+			3, 2, 6,	3, 6, 7, //bottom
 		];
+
+		vertexBuffer = gl.createBuffer();
+
+		gl.bindBuffer( gl.ARRAY_BUFFER, vertexBuffer );
+		gl.bufferData( gl.ARRAY_BUFFER, new Float32Array( vertices ), gl.STATIC_DRAW );
 
 		indexDrawCount = indices.length;
 
 		indexBuffer = gl.createBuffer();
+
 		gl.bindBuffer( gl.ELEMENT_ARRAY_BUFFER, indexBuffer );
 		gl.bufferData( gl.ELEMENT_ARRAY_BUFFER, new Uint16Array( indices ), gl.STATIC_DRAW );
 	};
+
+	function calcNormals( vertices, indices, data32perVertex, vertexOffset )
+	{
+		var vDataI, vPosI;
+
+		for (var i = 0; i < indices.length; i++) 
+		{
+			vDataI = data32perVertex * indices[i];
+			vPosI = vDataI + vertexOffset;
+
+			vertices.slice( data32perVertex * indices[i] + vertexOffset, 3 );
+		};
+	}
 
 	function initShaders()
 	{
@@ -145,8 +160,8 @@
 	{
 		modelView = mat4.identity( modelView );
 
-		mat4.translate( modelView, modelView, [ 0, 0, -5 ] );
-		mat4.rotateY( modelView, modelView, ++c / 50 );
+		mat4.translate( modelView, modelView, [ 0, 0, -4 ] );
+		mat4.rotate( modelView, modelView, ++c / 50, [ 1, 1, 1 ] );
 	};
 
 	function setProgramAndUniforms()

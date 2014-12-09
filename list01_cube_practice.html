@@ -10,10 +10,12 @@
 			position: absolute;
 		}
 
-		.frameRate
+		#frameRate
 		{
 			color: white;
 			position: absolute;
+			font-size: 11px;
+			font-weight: bold;
 		}
 	</style>
 	<script type="text/javascript" src="gl-matrix.js"></script>
@@ -47,15 +49,15 @@
 
 		void main( void )
 		{
-			gl_FragColor = vec4( 0.8, 0.0, 0.0, 1.0 ) * max( 0.0, dot( normal, light ) ) + ambient;
+			gl_FragColor = fragColor * max( 0.0, dot( normal, light ) ) + ambient;
 		}
 	</script>
 
 </head>
 <body>
 	<div class="wrapper">
-		<div id="frameRate">00</div>
 		<canvas id="canvas">Your Browser does not support webgl</canvas>
+		<div id="frameRate">00</div>
 	</div>
 </body>
 </html>
