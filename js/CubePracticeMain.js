@@ -9,8 +9,14 @@
 		vertexShader,
 		fragmentShader,
 		vertexBuffer,
-		indexBuffer,
-		indexDrawCount;
+		indexBuffer;
+
+	var indexDrawCount,
+		data32PerVertex,
+		vertexOffset,
+		colorOffset,
+		normalOffset,
+		totalVertexBufferCount;
 
 	var projection,
 		modelView;
@@ -31,6 +37,8 @@
 		gl = canvas.getContext( "webgl" );
 
 		gl.enable( gl.DEPTH_TEST );
+		gl.enable( gl.CULL_FACE );
+		gl.cullFace( gl.FRONT );
 
 		initBuffers();
 		initShaders();
@@ -42,10 +50,10 @@
 
 	function initBuffers()
 	{
-		var r = 1;
+		var r = 0.8;
 
 		var vertices = [
-			-r, r, r, 	1, 0, 0, 
+			-r, r, r, 	1, 0, 0,
 			r, r, r,	0, 1, 0,
 			r, -r, r,	0, 0, 1,
 			-r, -r, r,	1, 1, 0,
@@ -57,18 +65,18 @@
 		];
 
 		var indices = [
-			0, 1, 2,  	0, 2, 3, //front
-			4, 5, 6, 	4, 6, 7, //back
-			1, 5, 6, 	1, 6, 2, //left
-			0, 4, 7,	0, 7, 3, //right
-			4, 5, 1, 	4, 1, 0, //top
-			3, 2, 6,	3, 6, 7, //bottom
+			0, 1, 2,  	0, 2, 3, // front
+			5, 4, 7, 	5, 7, 6, // back
+			1, 5, 6, 	1, 6, 2, // left
+			4, 0, 3,	4, 3, 7, // right
+			4, 5, 1, 	4, 1, 0, // top
+			3, 2, 6,	3, 6, 7, // bottom
 		];
 
 		vertexBuffer = gl.createBuffer();
 
 		gl.bindBuffer( gl.ARRAY_BUFFER, vertexBuffer );
-		gl.bufferData( gl.ARRAY_BUFFER, new Float32Array( vertices ), gl.STATIC_DRAW );
+		gl.bufferData( gl.ARRAY_BUFFER, new Float32Array( calcNormals( vertices, indices, 6, 0 ) ), gl.STATIC_DRAW );
 
 		indexDrawCount = indices.length;
 
@@ -76,19 +84,43 @@
 
 		gl.bindBuffer( gl.ELEMENT_ARRAY_BUFFER, indexBuffer );
 		gl.bufferData( gl.ELEMENT_ARRAY_BUFFER, new Uint16Array( indices ), gl.STATIC_DRAW );
+
+		data32PerVertex = 9;
+		vertexOffset = 0;
+		colorOffset = 3;
+		normalOffset = 6;
+
+		totalVertexBufferCount = indices.length;
 	};
 
 	function calcNormals( vertices, indices, data32perVertex, vertexOffset )
 	{
+		var calcVertices = [];
 		var vDataI, vPosI;
+		var a, b, c, ba, bc, cross;
 
-		for (var i = 0; i < indices.length; i++) 
+		for (var i = 0; i < indices.length; i += 3 )
 		{
-			vDataI = data32perVertex * indices[i];
-			vPosI = vDataI + vertexOffset;
+			a = vertices.slice( data32perVertex * indices[i] + vertexOffset, data32perVertex * indices[i] + vertexOffset + 3 );
+			b = vertices.slice( data32perVertex * indices[i+1] + vertexOffset, data32perVertex * indices[i+1] + vertexOffset + 3 );
+			c = vertices.slice( data32perVertex * indices[i+2] + vertexOffset, data32perVertex * indices[i+2] + vertexOffset + 3 );
 
-			vertices.slice( data32perVertex * indices[i] + vertexOffset, 3 );
+			ba = vec3.subtract( vec3.create(), b, a );
+			bc = vec3.subtract( vec3.create(), b, c );
+
+			cross = vec3.cross( vec3.create(), bc, ba );
+			cross = vec3.normalize( cross, cross );
+
+			for (var j = 0; j < 3; j++) 
+			{
+				vDataI = data32perVertex * indices[i+j];
+
+				calcVertices = calcVertices.concat( vertices.slice( vDataI, vDataI + data32perVertex ) );
+				calcVertices = calcVertices.concat( [ cross[0], cross[1], cross[2] ] );
+			};
 		};
+
+		return calcVertices;
 	}
 
 	function initShaders()
@@ -150,7 +182,7 @@
 
 			start = ms;
 
-			requestAnimationFrame( render, gl.canvas );
+			requestAnimationFrame( render );
 		})();
 	};
 
@@ -161,23 +193,26 @@
 		modelView = mat4.identity( modelView );
 
 		mat4.translate( modelView, modelView, [ 0, 0, -4 ] );
-		mat4.rotate( modelView, modelView, ++c / 50, [ 1, 1, 1 ] );
+		mat4.rotate( modelView, modelView, ++c / 50, [ 1, 0, 1 ] );
 	};
 
 	function setProgramAndUniforms()
 	{
 		gl.useProgram( program );
 
-		var transform = gl.getUniformLocation( program, "transform" );
+		var uProjection = gl.getUniformLocation( program, "projection" );
+		var uModelView = gl.getUniformLocation( program, "modelView" );
 
-		gl.uniformMatrix4fv( transform, false, mat4.multiply( mat4.create(), projection, modelView ) );
+		gl.uniformMatrix4fv( uModelView, false, modelView );
+		gl.uniformMatrix4fv( uProjection, false, projection );
 
 		var light = gl.getUniformLocation( program, "light" );
 		var ambient = gl.getUniformLocation( program, "ambient" );
 
-		light = 
+		var vLight = vec3.fromValues( -1.0, 1.0, 1.0 );
+		vec3.normalize( vLight, vLight );
 
-		gl.uniform3f( light, 1.0, 1.0, 1.0 );
+		gl.uniform3f( light, vLight[0], vLight[1], vLight[2] );
 		gl.uniform4f( ambient, 0.1, 0.1, 0.1, 1.0 );
 	};
 
@@ -185,21 +220,27 @@
 	{
 		var position = gl.getAttribLocation( program, "position" );
 		var color = gl.getAttribLocation( program, "color" );
+		var normal = gl.getAttribLocation( program, "normal" );
 
 		gl.enableVertexAttribArray( position );
 		gl.enableVertexAttribArray( color );
+		gl.enableVertexAttribArray( normal );
 
 		gl.bindBuffer( gl.ARRAY_BUFFER, vertexBuffer );
-		gl.vertexAttribPointer( position, 3, gl.FLOAT, false, 4 * 6, 4 * 0 );	
-		gl.vertexAttribPointer( color, 3, gl.FLOAT, false, 4 * 6, 4 * 3 );
+
+		gl.vertexAttribPointer( position, 3, gl.FLOAT, false, 4 * data32PerVertex, 4 * 0 );	
+		gl.vertexAttribPointer( color, 3, gl.FLOAT, false, 4 * data32PerVertex, 4 * colorOffset );
+		gl.vertexAttribPointer( normal, 3, gl.FLOAT, false, 4 * data32PerVertex, 4 * normalOffset )
 	};
 
 	function drawScene()
 	{
 		gl.clear( gl.COLOR_BUFFER_BIT );
 
-		gl.bindBuffer( gl.ELEMENT_ARRAY_BUFFER, indexBuffer );
-		gl.drawElements( gl.TRIANGLES, indexDrawCount, gl.UNSIGNED_SHORT, 0 );
+		gl.bindBuffer( gl.ARRAY_BUFFER, vertexBuffer );
+		gl.drawArrays( gl.TRIANGLES, 0, totalVertexBufferCount );
+		// gl.bindBuffer( gl.ELEMENT_ARRAY_BUFFER, indexBuffer );
+		// gl.drawElements( gl.TRIANGLES, indexDrawCount, gl.UNSIGNED_SHORT, 0 );
 	};
 
 	

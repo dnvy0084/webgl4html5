@@ -18,38 +18,44 @@
 			font-weight: bold;
 		}
 	</style>
-	<script type="text/javascript" src="gl-matrix.js"></script>
+	<script type="text/javascript" src="js/gl-matrix.js"></script>
 	<script type="text/javascript" src="js/CubePracticeMain.js"></script>
 	
 	<script type="x-shader/x-vertex" id="vertexShader">
+
 		attribute vec3 position;
 		attribute vec3 color;
+		attribute vec3 normal;
 
-		varying highp vec4 fragColor;
-		varying highp vec3 normal;
+		varying highp vec4 vColor;
+		varying highp float vLightAmount;
 
-		uniform mat4 transform;
+		uniform mat4 modelView;
+		uniform mat4 projection;
+
+		uniform vec3 light;
 
 		void main( void )
 		{
-			gl_Position = transform * vec4( position, 1.0 );
+			gl_Position = projection * modelView * vec4( position, 1.0 );
 
-			fragColor = vec4( color, 1.0 );
-			normal = normalize( position );
+			vec3 worldNormal = normalize( mat3( modelView ) * normal );
+			vLightAmount = max( 0.0, dot( worldNormal, -light ) );
+
+			vColor = vec4( color, 1.0 );
 		}
 	</script>
 	
 	<script type="x-shader/x-fragment" id="fragmentShader">
 
-		varying highp vec4 fragColor;
-		varying highp vec3 normal;
+		varying highp vec4 vColor;
+		varying highp float vLightAmount;
 
-		uniform lowp vec3 light;
-		uniform lowp vec4 ambient;
+		uniform highp vec4 ambient;
 
 		void main( void )
 		{
-			gl_FragColor = fragColor * max( 0.0, dot( normal, light ) ) + ambient;
+			gl_FragColor = vColor * vLightAmount + ambient;
 		}
 	</script>
 
