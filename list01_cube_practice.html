@@ -76,7 +76,7 @@
 				highp float specular = max( 0.0, dot( view, reflection ) );
 				specular = pow( specular, 20.0 );
 
-				oc = oc + specular;
+				oc = oc + specular * 0.5;
 			}
 
 			gl_FragColor = oc;
