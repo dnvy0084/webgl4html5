@@ -108,7 +108,7 @@
 			ba = vec3.subtract( vec3.create(), b, a );
 			bc = vec3.subtract( vec3.create(), b, c );
 
-			cross = vec3.cross( vec3.create(), bc, ba );
+			cross = vec3.cross( vec3.create(), ba, bc );
 			cross = vec3.normalize( cross, cross );
 
 			for (var j = 0; j < 3; j++) 
@@ -177,8 +177,8 @@
 			setBufferData();
 			drawScene();
 
-			if( start != -1 )
-				frame.innerHTML = Math.floor( 1000 / ( ms - start ) );
+			if( start != -1 && c % 30 == 0 )
+				frame.innerHTML = "FPS: " + Math.floor( 1000 / ( ms - start ) );
 
 			start = ms;
 
@@ -193,7 +193,7 @@
 		modelView = mat4.identity( modelView );
 
 		mat4.translate( modelView, modelView, [ 0, 0, -4 ] );
-		mat4.rotate( modelView, modelView, ++c / 50, [ 1, 0, 1 ] );
+		mat4.rotate( modelView, modelView, ++c / 50, [ 1, 1, 1 ] );
 	};
 
 	function setProgramAndUniforms()
@@ -208,12 +208,14 @@
 
 		var light = gl.getUniformLocation( program, "light" );
 		var ambient = gl.getUniformLocation( program, "ambient" );
+		var view = gl.getUniformLocation( program, "view" );
 
-		var vLight = vec3.fromValues( -1.0, 1.0, 1.0 );
+		var vLight = vec3.fromValues( 0.0, 0.0, 1.0 );
 		vec3.normalize( vLight, vLight );
 
 		gl.uniform3f( light, vLight[0], vLight[1], vLight[2] );
 		gl.uniform4f( ambient, 0.1, 0.1, 0.1, 1.0 );
+		gl.uniform3f( view, 0.0, 0.0, 1.0 );
 	};
 
 	function setBufferData()

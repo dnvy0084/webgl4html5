@@ -57,8 +57,6 @@
 
 					string = string.replace( /\([\w,]+\)/g, "( " + args.join( ", " ) + " )" );
 
-					console.log( string );
-
 					return string;
 				}
 
@@ -89,8 +87,6 @@
 				];
 
 				json.splice( json.indexOf( "Insert" ), 1, b.join( ",\n" ) );
-
-				console.log( json.join( "\n" ) );
 			}
 
 			reader.onerror = function( e )
