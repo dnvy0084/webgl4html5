@@ -12,9 +12,38 @@
 			console.log( "init" );
 
 			var fileDom = document.getElementById( "file" );
+			var fileDom2 = document.getElementById( "file2" );
 
 			fileDom.addEventListener( "change", onFileSelect );
+			fileDom2.addEventListener( "change", onPrototypeConvert );
 		};
+
+		function onPrototypeConvert( e )
+		{
+			files = document.getElementById( "file2" ).files;
+
+			readFileAsPrototype( files[0] );	
+		};
+
+		function readFileAsPrototype( file )
+		{
+			var reader = new FileReader();
+
+			reader.onprogress = function( e )
+			{
+				console.log( e );
+			}
+
+			reader.onload = function( e )
+			{
+				console.log( e.target.result );
+			}
+
+			reader.readAsText( file, "UTF-8" );
+		};
+
+
+
 
 		function onFileSelect( e )
 		{
@@ -104,6 +133,7 @@
 <body>
 	<div class="wrapper">
 		<input type="file" id="file">
+		<input type="file" id="file2" value="prototype converter">
 	</div>
 </body>
 </html>

@@ -1,10 +1,38 @@
-(function( global )
+( function( global )
 {
 	if( global == null )
 		global = window;
 
+	function Camera( lookAtObject )
+	{
+		this.__init();
+
+		this.__defineGetter__( "transform", this._gettransform );
+		this.__defineSetter__( "transform", this._settransform );
+
+		this.__defineGetter__( "cameraMatrix", this._getcameraMatrix );
+	}
+
+	Camera.prototype = Pivot3D.prototype;
+
+	Camera.prototype._gettransform = function()
+	{
+		return this.mat;
+	}
+
+	Camera.prototype._settransform = function( value )
+	{
+		this.mat = value;
+	}
+
+	Camera.prototype._getcameraMatrix = function()
+	{
+		return mat4.invert( mat4.create(), this.transform );
+	}
+
 	var canvas,
 		gl,
+		camera,
 		program,
 		vertexShader,
 		fragmentShader,
@@ -21,13 +49,36 @@
 	var projection,
 		modelView;
 
-	var frame;
+	var frameDiv;
 
 	function init()
 	{
-		frame = document.getElementById( "frameRate" );
- 
+		frameDiv = document.getElementById( "frameRate" );
+
 		initWebGL();
+		initMouseEvents();
+	};
+
+	function initMouseEvents()
+	{
+		function onDown( e )
+		{
+			console.log( e );
+		};
+
+		function onUp( e )
+		{
+			console.log( e );
+		};
+
+		function onWheel( e )
+		{
+			camera.z += e.wheelDelta / 200;	
+		};
+
+		canvas.addEventListener( "mousedown", onDown );
+		canvas.addEventListener( "mouseup", onUp );
+		canvas.addEventListener( "mousewheel", onWheel );
 	};
 
 
@@ -40,6 +91,7 @@
 		gl.enable( gl.CULL_FACE );
 		gl.cullFace( gl.FRONT );
 
+		initCameras();
 		initBuffers();
 		initShaders();
 		initMatrices();
@@ -47,6 +99,12 @@
 	};
 
 
+	function initCameras()
+	{
+		camera = new Camera();
+
+		camera.z = 5;	
+	};
 
 	function initBuffers()
 	{
@@ -202,9 +260,11 @@
 
 		var uProjection = gl.getUniformLocation( program, "projection" );
 		var uModelView = gl.getUniformLocation( program, "modelView" );
+		var uCamera = gl.getUniformLocation( program, "camera" );
 
 		gl.uniformMatrix4fv( uModelView, false, modelView );
 		gl.uniformMatrix4fv( uProjection, false, projection );
+		gl.uniformMatrix4fv( uCamera, false, camera.cameraMatrix );
 
 		var light = gl.getUniformLocation( program, "light" );
 		var ambient = gl.getUniformLocation( program, "ambient" );
@@ -213,9 +273,12 @@
 		var vLight = vec3.fromValues( 0.0, 0.0, 1.0 );
 		vec3.normalize( vLight, vLight );
 
+		var vCamera = vec3.fromValues( camera.x, camera.y, camera.z );
+		vec3.normalize( vCamera, vCamera );
+
 		gl.uniform3f( light, vLight[0], vLight[1], vLight[2] );
 		gl.uniform4f( ambient, 0.1, 0.1, 0.1, 1.0 );
-		gl.uniform3f( view, 0.0, 0.0, 1.0 );
+		gl.uniform3f( view, vCamera[0], vCamera[1], vCamera[2] );
 	};
 
 	function setBufferData()
