@@ -61,6 +61,10 @@
 
 	function initMouseEvents()
 	{
+		var req = -1,
+			keys = {},
+			speed = 0.1;
+
 		function onDown( e )
 		{
 			console.log( e );
@@ -76,9 +80,72 @@
 			camera.z += e.wheelDelta / 200;	
 		};
 
+		function onKeyDown( e )
+		{
+			keys[ e.keyCode ] = 1;
+
+			if( req == -1 )
+				req = requestAnimationFrame( checkKeydown );
+		};
+
+		function onKeyUp( e )
+		{
+			delete keys[ e.keyCode ];
+		}
+
+		function checkKeydown( ms )
+		{
+			var n = 0;
+
+			for( var s in keys )
+			{
+				n = 1;
+				break;
+			}
+
+			if( n ) 
+			{
+				excuKeyControls( keys );
+				req = requestAnimationFrame( checkKeydown );
+			}
+			else 	
+			{
+				cancelAnimationFrame( req );
+				req = -1;
+			}
+		}
+
+		function excuKeyControls( keys )
+		{
+			for( var s in keys )
+			{
+				switch( Number( s ) )
+				{
+					case 37:
+						camera.x += -speed;
+						break;
+
+					case 38:
+						camera.y += speed;
+						break;
+
+					case 39:
+						camera.x += speed;
+						break;
+
+					case 40:
+						camera.y += -speed;
+						break;
+				}
+			}
+		}
+
 		canvas.addEventListener( "mousedown", onDown );
 		canvas.addEventListener( "mouseup", onUp );
 		canvas.addEventListener( "mousewheel", onWheel );
+
+		document.addEventListener( "keydown", onKeyDown );
+		document.addEventListener( "keyup", onKeyUp );
 	};
 
 
@@ -236,7 +303,7 @@
 			drawScene();
 
 			if( start != -1 && c % 30 == 0 )
-				frame.innerHTML = "FPS: " + Math.floor( 1000 / ( ms - start ) );
+				frameDiv.innerHTML = "FPS: " + Math.floor( 1000 / ( ms - start ) );
 
 			start = ms;
 
@@ -270,7 +337,7 @@
 		var ambient = gl.getUniformLocation( program, "ambient" );
 		var view = gl.getUniformLocation( program, "view" );
 
-		var vLight = vec3.fromValues( 0.0, 0.0, 1.0 );
+		var vLight = vec3.fromValues( -1.0, 1.0, 1.0 );
 		vec3.normalize( vLight, vLight );
 
 		var vCamera = vec3.fromValues( camera.x, camera.y, camera.z );
