@@ -1,0 +1,163 @@
+<html>
+<head>
+	<title>WebGL 2D Rect</title>
+	<style type="text/css">
+		#canvas
+		{
+			background-color: black;
+		}
+	</style>	
+	<script type="text/javascript" src="js/wglu.js"></script>
+	<script type="text/javascript" src="js/gl-matrix.js"></script>
+	<script type="text/javascript">
+		(function( global ){
+
+			var gl,
+				buffer,
+				program,
+				rect;
+
+			function init()
+			{
+				gl = document.getElementById( "canvas" ).getContext( "webgl" );
+
+				initWebGL();
+			};
+
+			function initWebGL()
+			{
+				rect = { 
+					x: 0, y: ( gl.canvas.clientHeight - 50 ) / 2, w: 100, h: 50, 
+					color: 0xff0000 
+				};
+
+				var vertices = getVerticesFromRect( rect );
+
+				console.log( vertices );
+
+				buffer = wglu.createBuffer( gl, gl.ARRAY_BUFFER, vertices, gl.STATIC_DRAW );
+				program = wglu.createProgram( gl, 
+					document.getElementById( "vertexShader" ).innerHTML, 
+					document.getElementById( "fragmentShader" ).innerHTML 
+				);
+
+				gl.useProgram( program );
+
+				var c = 0;
+
+				(function render( mx )
+				{
+					//vertex shader : set uniform;
+					// var move = gl.getUniformLocation( program, "move" );
+					// var res = gl.getUniformLocation( program, "res" );
+
+					// gl.uniform2f( move, rect.x, rect.y );
+					// gl.uniform2f( res, gl.canvas.clientWidth, gl.canvas.clientHeight );
+
+					var projection = gl.getUniformLocation( program, "projection" );
+					gl.uniformMatrix3fv( projection, false, make2DProjection( gl.canvas.clientWidth, gl.canvas.clientHeight ) );
+
+					var modelMat = mat3.create();
+					mat3.translate( modelMat, modelMat, [ rect.x, rect.y ] );
+					mat3.rotate( modelMat, modelMat, c );
+					var model = gl.getUniformLocation( program, "model" );
+					gl.uniformMatrix3fv( model, false, modelMat );
+
+					//fragment shader : set uniform;
+					var color = gl.getUniformLocation( program, "color" );
+
+					var r = ( rect.color >> 16 & 0xff ) / 255;
+					var g = ( rect.color >> 8 & 0xff ) / 255;
+					var b = ( rect.color & 0xff ) / 255;
+
+					gl.uniform3f( color, r, g, b );
+
+
+					var pos = gl.getAttribLocation( program, "pos" );
+
+					gl.enableVertexAttribArray( pos );
+
+					gl.bindBuffer( gl.ARRAY_BUFFER, buffer );
+					gl.vertexAttribPointer( pos, 2, gl.FLOAT, false, 4 * 2, 4 * 0 );
+
+					gl.drawArrays( gl.TRIANGLES, 0, 6 );
+
+					rect.x = gl.canvas.clientWidth / 2 * Math.cos( c ) + gl.canvas.clientWidth / 2;
+					rect.color += 20;
+
+					c += 0.05;
+
+					requestAnimationFrame( render );
+				})();
+			};
+
+			function make2DProjection( w, h )
+			{
+				return new Float32Array( [
+					2 / w, 0, 0,
+					0, -2 / h, 0,
+					-1, 1, 1
+				] );
+			}
+
+			function getVerticesFromRect( r )
+			{
+				return new Float32Array( [
+					0, 0,
+					r.w, 0,
+					r.w, r.h,
+					0, 0,
+					r.w, r.h,
+					0, r.h
+				] );
+			};
+
+			global.onload = init;
+
+		})( window );
+	</script>
+	<script type="x-shader/x-vertex" id="vertexShader">
+
+		attribute vec2 pos;
+
+		uniform mat3 projection;
+		uniform mat3 model;
+
+		// uniform vec2 res;
+		// uniform vec2 move;
+
+		// const vec2 a = vec2( -1.0, 1.0 );
+		// const vec2 b = vec2( 1.0, -1.0 );
+		// const vec2 n = vec2( 0.0, 0.0 );
+
+		void main( void )
+		{
+			// a ~ b : n ~ res = x ~ b : pos ~ res;
+			// ( b - a ) : ( res - n ) = ( b - x ) : ( res - pos );
+			// x = -( b - a ) * ( res - pos ) / ( res - n ) + b;
+			// vec2 moved = pos + move;
+
+			// gl_Position = vec4( -( b - a ) * ( res - moved ) / ( res - n ) + b, 0.0, 1.0 );
+
+			gl_Position = vec4( projection * model * vec3( pos, 1.0 ), 1.0 );
+		}
+	</script>
+
+	<script type="x-shader/x-fragment" id="fragmentShader">
+
+		precision highp float;
+
+		uniform vec3 color;
+
+		void main( void )
+		{
+			gl_FragColor = vec4( color, 1.0 );
+		}
+	</script>
+</head>
+<body>
+	<div class="wrapper">
+		<canvas id="canvas" width="1024" height="768">Your browser does not support WebGL</canvas>
+	</div>
+</body>
+</html>

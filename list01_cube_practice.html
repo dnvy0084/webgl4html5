@@ -5,8 +5,6 @@
 		canvas
 		{
 			background-color: black;
-			width: 1024;
-			height: 768;
 			position: absolute;
 		}
 
@@ -24,14 +22,16 @@
 	
 	<script type="x-shader/x-vertex" id="vertexShader">
 
+		precision highp float;
+
 		attribute vec3 position;
 		attribute vec3 color;
 		attribute vec3 normal;
 
-		varying highp vec4 pixelColor;
-		varying highp float diffuse;
-		varying highp vec3 reflection;
-		// varying highp vec3 vLight;
+		varying vec4 pixelColor;
+		varying vec3 reflection;
+		varying float diffuse;
+		// varying vec3 vLight;
 
 		uniform mat4 modelView;
 		uniform mat4 projection;
@@ -57,25 +57,27 @@
 	
 	<script type="x-shader/x-fragment" id="fragmentShader">
 
-		varying highp vec4 pixelColor;
-		varying highp float diffuse;
-		varying highp vec3 reflection;
-		// varying highp vec3 vLight;
+		precision highp float;
 
-		uniform highp vec3 view;
-		uniform highp vec4 ambient;
+		varying vec4 pixelColor;
+		varying float diffuse;
+		varying vec3 reflection;
+		// varying vec3 vLight;
+
+		uniform vec3 view;
+		uniform vec4 ambient;
 
 		void main( void )
 		{
-			highp vec4 pixel = pixelColor;//vec4( 0.8, 0.0, 0.0, 1.0 );
+			vec4 pixel = pixelColor;//vec4( 0.8, 0.0, 0.0, 1.0 );
 
-			highp vec4 oc = pixel * diffuse + ambient;
+			vec4 oc = pixel * diffuse + ambient;
 
 			if( diffuse > 0.0 )
 			{
-				// highp vec3 vertexNormal = normalize( vPosition );
-				// highp vec3 reflection = reflect( -vLight, vertexNormal );
-				highp float specular = max( 0.0, dot( view, reflection ) );
+				// vec3 vertexNormal = normalize( vPosition );
+				// vec3 reflection = reflect( -vLight, vertexNormal );
+				float specular = max( 0.0, dot( view, reflection ) );
 				specular = pow( specular, 20.0 );
 
 				oc = oc + specular;
@@ -89,7 +91,7 @@
 </head>
 <body>
 	<div class="wrapper">
-		<canvas id="canvas">Your Browser does not support webgl</canvas>
+		<canvas id="canvas" width="1024" height="768">Your Browser does not support webgl</canvas>
 		<div id="frameRate">00</div>
 	</div>
 </body>

@@ -11,6 +11,8 @@
 		this.__defineSetter__( "transform", this._settransform );
 
 		this.__defineGetter__( "cameraMatrix", this._getcameraMatrix );
+
+		this.distance = 0;
 	}
 
 	Camera.prototype = Pivot3D.prototype;
@@ -77,7 +79,7 @@
 
 		function onWheel( e )
 		{
-			camera.z += e.wheelDelta / 200;	
+			camera.distance += e.wheelDelta / 200;	
 		};
 
 		function onKeyDown( e )
@@ -157,6 +159,8 @@
 		gl.enable( gl.DEPTH_TEST );
 		gl.enable( gl.CULL_FACE );
 		gl.cullFace( gl.FRONT );
+
+		//gl.viewport( 0, 0, gl.canvas.clientWidth, gl.canvas.clientHeight );
 
 		initCameras();
 		initBuffers();
@@ -287,8 +291,9 @@
 	{
 		modelView = mat4.create();
 		projection = mat4.create();
-		console.log( gl.canvas.width, gl.canvas.height );
-		projection = mat4.perspective( projection, 45, 1024 / 768, 0.1, 1000 );
+		
+		mat4.perspective( 
+			projection, 60 * Math.PI / 180, gl.canvas.clientWidth / gl.canvas.clientHeight, 1, 1000 );
 	};
 
 
@@ -302,7 +307,7 @@
 			setBufferData();
 			drawScene();
 
-			if( start != -1 && c % 30 == 0 )
+			if( c % 30 == 0 )
 				frameDiv.innerHTML = "FPS: " + Math.floor( 1000 / ( ms - start ) );
 
 			start = ms;
@@ -317,7 +322,7 @@
 	{
 		modelView = mat4.identity( modelView );
 
-		mat4.translate( modelView, modelView, [ 0, 0, -4 ] );
+		mat4.translate( modelView, modelView, [ 0, 0, -5 ] );
 		mat4.rotate( modelView, modelView, ++c / 50, [ 1, 1, 1 ] );
 	};
 
@@ -328,6 +333,9 @@
 		var uProjection = gl.getUniformLocation( program, "projection" );
 		var uModelView = gl.getUniformLocation( program, "modelView" );
 		var uCamera = gl.getUniformLocation( program, "camera" );
+
+		camera.z = camera.distance;
+		//camera.rotationY = 1;
 
 		gl.uniformMatrix4fv( uModelView, false, modelView );
 		gl.uniformMatrix4fv( uProjection, false, projection );
