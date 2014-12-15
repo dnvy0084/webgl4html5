@@ -1,0 +1,672 @@
+<html>
+<head>
+	<title>games.greggman.com / 3d perspective </title>
+	<link rel="stylesheet" href="http://ajax.googleapis.com/ajax/libs/jqueryui/1.11.2/themes/smoothness/jquery-ui.css" />
+	<script src="http://ajax.googleapis.com/ajax/libs/jquery/1.11.1/jquery.min.js"></script>
+	<script src="http://ajax.googleapis.com/ajax/libs/jqueryui/1.11.2/jquery-ui.min.js"></script>
+
+	<script type="text/javascript" src="js/gl-matrix.js"></script>
+	<script type="text/javascript" src="js/wglu.js"></script>
+
+	<script type="text/javascript">
+
+		window.vertexData = new Float32Array([
+			// left column front
+			0,   0,  0,
+			0, 150,  0,
+			30,   0,  0,
+			0, 150,  0,
+			30, 150,  0,
+			30,   0,  0,
+
+			// top rung front
+			30,   0,  0,
+			30,  30,  0,
+			100,   0,  0,
+			30,  30,  0,
+			100,  30,  0,
+			100,   0,  0,
+
+			// middle rung front
+			30,  60,  0,
+			30,  90,  0,
+			67,  60,  0,
+			30,  90,  0,
+			67,  90,  0,
+			67,  60,  0,
+
+			// left column back
+			0,   0,  30,
+			30,   0,  30,
+			0, 150,  30,
+			0, 150,  30,
+			30,   0,  30,
+			30, 150,  30,
+
+			// top rung back
+			30,   0,  30,
+			100,   0,  30,
+			30,  30,  30,
+			30,  30,  30,
+			100,   0,  30,
+			100,  30,  30,
+
+			// middle rung back
+			30,  60,  30,
+			67,  60,  30,
+			30,  90,  30,
+			30,  90,  30,
+			67,  60,  30,
+			67,  90,  30,
+
+			// top
+			0,   0,   0,
+			100,   0,   0,
+			100,   0,  30,
+			0,   0,   0,
+			100,   0,  30,
+			0,   0,  30,
+
+			// top rung front
+			100,   0,   0,
+			100,  30,   0,
+			100,  30,  30,
+			100,   0,   0,
+			100,  30,  30,
+			100,   0,  30,
+
+			// under top rung
+			30,   30,   0,
+			30,   30,  30,
+			100,  30,  30,
+			30,   30,   0,
+			100,  30,  30,
+			100,  30,   0,
+
+			// between top rung and middle
+			30,   30,   0,
+			30,   60,  30,
+			30,   30,  30,
+			30,   30,   0,
+			30,   60,   0,
+			30,   60,  30,
+
+			// top of middle rung
+			30,   60,   0,
+			67,   60,  30,
+			30,   60,  30,
+			30,   60,   0,
+			67,   60,   0,
+			67,   60,  30,
+
+			// front of middle rung
+			67,   60,   0,
+			67,   90,  30,
+			67,   60,  30,
+			67,   60,   0,
+			67,   90,   0,
+			67,   90,  30,
+
+			// bottom of middle rung.
+			30,   90,   0,
+			30,   90,  30,
+			67,   90,  30,
+			30,   90,   0,
+			67,   90,  30,
+			67,   90,   0,
+
+			// front of bottom
+			30,   90,   0,
+			30,  150,  30,
+			30,   90,  30,
+			30,   90,   0,
+			30,  150,   0,
+			30,  150,  30,
+
+			// bottom
+			0,   150,   0,
+			0,   150,  30,
+			30,  150,  30,
+			0,   150,   0,
+			30,  150,  30,
+			30,  150,   0,
+
+			// left side
+			0,   0,   0,
+			0,   0,  30,
+			0, 150,  30,
+			0,   0,   0,
+			0, 150,  30,
+			0, 150,   0] );
+
+		window.colorData =  new Uint8Array([
+          // left column front
+	        200,  70, 120,
+	        200,  70, 120,
+	        200,  70, 120,
+	        200,  70, 120,
+	        200,  70, 120,
+	        200,  70, 120,
+
+	          // top rung front
+	        200,  70, 120,
+	        200,  70, 120,
+	        200,  70, 120,
+	        200,  70, 120,
+	        200,  70, 120,
+	        200,  70, 120,
+
+	          // middle rung front
+	        200,  70, 120,
+	        200,  70, 120,
+	        200,  70, 120,
+	        200,  70, 120,
+	        200,  70, 120,
+	        200,  70, 120,
+
+	          // left column back
+	        80, 70, 200,
+	        80, 70, 200,
+	        80, 70, 200,
+	        80, 70, 200,
+	        80, 70, 200,
+	        80, 70, 200,
+
+	          // top rung back
+	        80, 70, 200,
+	        80, 70, 200,
+	        80, 70, 200,
+	        80, 70, 200,
+	        80, 70, 200,
+	        80, 70, 200,
+
+	          // middle rung back
+	        80, 70, 200,
+	        80, 70, 200,
+	        80, 70, 200,
+	        80, 70, 200,
+	        80, 70, 200,
+	        80, 70, 200,
+
+	          // top
+	        70, 200, 210,
+	        70, 200, 210,
+	        70, 200, 210,
+	        70, 200, 210,
+	        70, 200, 210,
+	        70, 200, 210,
+
+	          // top rung front
+	        200, 200, 70,
+	        200, 200, 70,
+	        200, 200, 70,
+	        200, 200, 70,
+	        200, 200, 70,
+	        200, 200, 70,
+
+	          // under top rung
+	        210, 100, 70,
+	        210, 100, 70,
+	        210, 100, 70,
+	        210, 100, 70,
+	        210, 100, 70,
+	        210, 100, 70,
+
+	          // between top rung and middle
+	        210, 160, 70,
+	        210, 160, 70,
+	        210, 160, 70,
+	        210, 160, 70,
+	        210, 160, 70,
+	        210, 160, 70,
+
+	          // top of middle rung
+	        70, 180, 210,
+	        70, 180, 210,
+	        70, 180, 210,
+	        70, 180, 210,
+	        70, 180, 210,
+	        70, 180, 210,
+
+	          // front of middle rung
+	        100, 70, 210,
+	        100, 70, 210,
+	        100, 70, 210,
+	        100, 70, 210,
+	        100, 70, 210,
+	        100, 70, 210,
+
+	          // bottom of middle rung.
+	        76, 210, 100,
+	        76, 210, 100,
+	        76, 210, 100,
+	        76, 210, 100,
+	        76, 210, 100,
+	        76, 210, 100,
+
+	          // front of bottom
+	        140, 210, 80,
+	        140, 210, 80,
+	        140, 210, 80,
+	        140, 210, 80,
+	        140, 210, 80,
+	        140, 210, 80,
+
+	          // bottom
+	        90, 130, 110,
+	        90, 130, 110,
+	        90, 130, 110,
+	        90, 130, 110,
+	        90, 130, 110,
+	        90, 130, 110,
+
+	          // left side
+	        160, 160, 220,
+	        160, 160, 220,
+	        160, 160, 220,
+	        160, 160, 220,
+	        160, 160, 220,
+	        160, 160, 220]);
+
+		function makeSliders( slideCallback )
+		{
+			return function()
+			{
+				var self = $( this ),
+					div = $( self.children()[0] ),
+					values = div.text().match( /[0-9\-]+/g ).map( 
+					function( m ){
+
+						return parseInt( m, 10 ); 
+					}
+				);
+
+				var id = div.attr( "class" ),
+					valueInput = $( self.children()[1] );
+
+				valueInput.text( values[0] );
+
+				div.empty().slider({
+					value: parseInt( valueInput.text(), 10 ),
+					min: values[0],
+					max: values[1],
+					range: "min",
+					animate: false,
+					orientation: "vertical",
+					slide: function( e, vo )
+					{
+						valueInput.text( vo.value );
+						slideCallback( { name: id, value: vo.value } );
+					}
+				})
+			}
+		}
+
+		(function(){
+			
+			var _transform = {};
+
+			_transform.Matrix3D = function( rawData )
+			{
+				if( rawData == null )
+				{
+					rawData = new Float32Array([
+						1, 0, 0, 0,
+						0, 1, 0, 0,
+						0, 0, 1, 0,
+						0, 0, 0, 1
+					]);
+				}
+
+				this.rawData = rawData;
+			}
+
+			_transform.Matrix3D.prototype = 
+			{
+				identity: function()
+				{
+					this.rawData = new Float32Array([
+						1, 0, 0, 0,
+						0, 1, 0, 0,
+						0, 0, 1, 0,
+						0, 0, 0, 1
+					]);
+				},
+
+				appendTranslate: function( x, y, z )
+				{
+					this.rawData[ 12 ] += x;
+					this.rawData[ 13 ] += y;
+					this.rawData[ 14 ] += z;
+				},
+
+				appendRotation: function( rad, axis )
+				{
+
+				},
+
+				appendScale: function( scaleX, scaleY, scaleZ )
+				{
+
+				}
+			}
+
+			window._transform = _transform;
+
+		})();
+
+	</script>
+
+	<style>
+		canvas
+		{
+			background-color: black;
+		}
+
+		.sampleHeader
+		{
+			font-family: NanumGothic;
+			font-size: 15px;
+			font-weight: bold;
+			margin-bottom: -10px;
+		}
+
+		.sliderContainer
+		{
+			float: left;
+			margin-right: 15px;
+		}
+
+		.sliderContainer > span{
+			height: 100px;
+			margin: 0 15 0 15;
+			float: left;
+			font-size: 9px;
+			font-family: "courier";
+		}
+
+		.containerTitle
+		{
+			font-size: 13px;
+			font-family: NanumGothic;
+			text-align: left;
+			margin-left: 10px;
+		}
+
+	</style>
+
+</head>
+<body>
+	<div class="wrapper">
+		<a href="http://games.greggman.com/game/webgl-3d-perspective/" target="_blank">
+			<h3 class="sampleHeader">3D Perspective - translate</h2>
+		</a><br>
+		<canvas id="canvas" width="400" height="300"></canvas>
+
+		<!-- <div class="slider" id="slider_x"></div>
+		<div class="slider" id="slider_y"></div>
+		<div class="slider" id="slider_z"></div> -->
+
+		<div class="sliderContainer" id="translateContainer">
+			<h5 class="containerTitle">translate</h5>
+			<span class="sliderItem">
+				<div class="slider_x">0,400</div>
+				<h6 class="valueInput"></h6>
+			</span>
+			<span class="sliderItem">
+				<div class="slider_y">0,300</div>
+				<h6 class="valueInput"></h6>
+			</span>
+			<span class="sliderItem">
+				<div class="slider_z">0,400</div>
+				<h6 class="valueInput"></h6>
+			</span>
+		</div>
+
+		<div class="sliderContainer" id="rotationContainer">
+			<h5 class="containerTitle">rotation</h5>
+			<span class="sliderItem">
+				<div class="slider_x">0,360</div>
+				<h6 class="valueInput"></h6>
+			</span>
+			<span class="sliderItem">
+				<div class="slider_y">0,360</div>
+				<h6 class="valueInput"></h6>
+			</span>
+			<span class="sliderItem">
+				<div class="slider_z">0,360</div>
+				<h6 class="valueInput"></h6>
+			</span>
+		</div>
+
+		<div class="sliderContainer" id="divContainer">
+			<h5 class="containerTitle">divide</h5>
+			<span class="sliderItem">
+				<div class="slider_x">0,100</div>
+				<h6 class="valueInput"></h6></span>
+		</div>
+	
+		<script type="x-shader/x-vertex" id="translate_vs">
+
+			precision highp float;
+
+			attribute vec3 pos;
+			attribute vec3 color;
+
+			uniform vec3 res;
+			uniform mat4 model;
+			uniform float div;
+
+			varying vec3 vColor;
+
+			void main( void )
+			{
+				vec4 v = model * vec4( pos, 1.0 );
+
+				v = v * 2.0 / vec4( res, 1.0 );
+				v = v - 1.0;
+				v = v * vec4( 1.0, -1.0, 1.0, 1.0 );
+
+				float zToDivBy = 1.0 + v.z * div;
+
+				gl_Position = vec4( v.xyz, zToDivBy );
+
+				vColor = color;
+			}
+
+		</script>
+		<script type="x-shader/x-fragment" id="translate_fs">
+
+			precision highp float;
+
+			varying vec3 vColor;
+
+			void main( void )
+			{
+				gl_FragColor = vec4( vColor, 1.0 );
+			}
+
+		</script>
+
+		<script type="text/javascript">
+
+			(function( gl ){
+
+				var vertexBuffer,
+					colorBuffer,
+					program,
+					modelMat = new _transform.Matrix3D(),
+					translatedValues = {
+						"slider_x": 0,
+						"slider_y": 0,
+						"slider_z": 0
+					},
+					rotationValues = {
+						"slider_x": 0,
+						"slider_y": 0,
+						"slider_z": 0
+					};
+			
+				function main()
+				{
+					layout();
+					initWebGL();	
+				};
+
+				function layout()
+				{
+					$( "#translateContainer > span" ).each( 
+						makeSliders( onTranslationChange )
+					);
+
+					$( "#rotationContainer > span" ).each(
+						makeSliders( onRotationChange )
+					);
+
+					$( "#divContainer > span" ).each(
+						makeSliders( onDivChange )
+					);
+				};
+
+				function onDivChange( e )
+				{
+					var div = gl.getUniformLocation( program, "div" );
+
+					gl.uniform1f( div, e.value / 100 );
+
+					render();
+				};
+
+				function onTranslationChange( e )
+				{
+					translatedValues[ e.name ] = e.value;
+
+					modelMat.identity();
+
+					modelMat.appendTranslate
+					(
+						translatedValues[ "slider_x" ],
+						translatedValues[ "slider_y" ],
+						translatedValues[ "slider_z" ]
+					);
+
+
+					var model = gl.getUniformLocation( program, "model" );
+
+					gl.uniformMatrix4fv( model, false, modelMat.rawData );
+
+					render();
+				};
+
+				function onRotationChange( e )
+				{
+
+				};
+
+				function initWebGL()
+				{
+					gl.enable( gl.CULL_FACE );
+					gl.enable( gl.DEPTH_TEST );
+
+					initBuffers();
+					initShaders();
+					setAttributeAndUniform();
+					render();
+				}	
+
+				function initBuffers()
+				{
+					vertexBuffer = gl.createBuffer();
+					colorBuffer = gl.createBuffer();
+
+					gl.bindBuffer( gl.ARRAY_BUFFER, vertexBuffer );
+					gl.bufferData( gl.ARRAY_BUFFER, window.vertexData, gl.STATIC_DRAW );
+
+					gl.bindBuffer( gl.ARRAY_BUFFER, colorBuffer );
+					gl.bufferData( gl.ARRAY_BUFFER, window.colorData, gl.STATIC_DRAW );
+				};
+
+				function initShaders()
+				{
+					var vs = gl.createShader( gl.VERTEX_SHADER );
+
+					gl.shaderSource( vs, $( "#translate_vs" ).text() );
+					gl.compileShader( vs );
+
+					if( !gl.getShaderParameter( vs, gl.COMPILE_STATUS ) )
+					{
+						console.log( "Error: vs compile " + gl.getShaderInfoLog( vs ) );
+					}
+
+
+					var fs = gl.createShader( gl.FRAGMENT_SHADER );
+
+					gl.shaderSource( fs, $( "#translate_fs" ).text() );
+					gl.compileShader( fs );
+
+					if( !gl.getShaderParameter( fs, gl.COMPILE_STATUS ) )
+					{
+						console.log( "Error: fs compile " + gl.getShaderInfoLog( fs ) );
+					}
+
+
+					program = gl.createProgram();
+					gl.attachShader( program, vs );
+					gl.attachShader( program, fs );
+
+					gl.linkProgram( program );
+
+					if( !gl.getProgramParameter( program, gl.LINK_STATUS ) )
+					{
+						console.log( "Error: Link " + gl.getProgramInfoLog( program ) );
+					}
+
+					gl.useProgram( program );
+				};
+
+				function setAttributeAndUniform()
+				{
+					var pos = gl.getAttribLocation( program, "pos" );
+					var color = gl.getAttribLocation( program, "color" );
+
+					gl.enableVertexAttribArray( pos );
+					gl.enableVertexAttribArray( color );
+
+					gl.bindBuffer( gl.ARRAY_BUFFER, vertexBuffer );
+					gl.vertexAttribPointer( pos, 3, gl.FLOAT, false, 0, 0 );
+
+					gl.bindBuffer( gl.ARRAY_BUFFER, colorBuffer );
+					gl.vertexAttribPointer( color, 3, gl.UNSIGNED_BYTE, true, 0, 0 );
+
+
+					var model = gl.getUniformLocation( program, "model" );
+
+					gl.uniformMatrix4fv( model, false, modelMat.rawData );
+
+
+					var div = gl.getUniformLocation( program, "div" );
+
+					gl.uniform1f( div, 1 );
+
+
+					var res = gl.getUniformLocation( program, "res" );
+
+					gl.uniform3f( res, gl.canvas.clientWidth, gl.canvas.clientHeight, gl.canvas.clientWidth );
+				};
+
+				function render()
+				{
+					gl.clear( gl.COLOR_BUFFER_BIT );
+
+					gl.drawArrays( gl.TRIANGLES, 0, window.vertexData.length / 3 );
+					//gl.drawArrays( gl.ARRAY_BUFFER, 0, long count )
+				};
+
+				main();
+
+			})( document.getElementById( "canvas" ).getContext( "webgl" ) );
+			
+		</script>
+	</div>
+</body>
+</html>
