@@ -1,0 +1,89 @@
+<html>
+<head>
+	<title>jquery ui testcase</title>
+	<link rel="stylesheet" href="http://ajax.googleapis.com/ajax/libs/jqueryui/1.11.2/themes/smoothness/jquery-ui.css" />
+	<script src="http://ajax.googleapis.com/ajax/libs/jquery/1.11.1/jquery.min.js"></script>
+	<script src="http://ajax.googleapis.com/ajax/libs/jqueryui/1.11.2/jquery-ui.min.js"></script>
+
+	<style type="text/css">
+		
+		header
+		{
+			border: none;
+		}
+
+		.wrapper
+		{
+			font-size: 11px;
+			font-family: NanumGothic;
+		}
+
+		select
+		{
+			width: 150px;
+		}
+
+	</style>
+	
+	<script type="text/javascript">
+
+		(function (){
+			
+			var doc = {};
+			var body = $( "#case_content" );
+
+			doc.buttonTest = function()
+			{
+				body.empty();
+
+				body.append( "<input id='testButton' type='button' value='buttonClick'/>" );
+			}
+
+			doc.sliderTest = function()
+			{
+				body.empty();
+
+				console.log( "sliderTest" );
+			};
+
+			function init()
+			{
+
+				$( ".header" ).append( "<select id='case_select'/>" );
+
+				var select = $( "#case_select" );
+
+				for( var s in doc )
+				{
+					console.log( s );
+
+					select.append( "<option>" + s + "</option>" );
+				}
+
+				select.selectmenu({
+					change: function( e, data )
+					{
+						doc[ data.item.label ]();
+					}
+				});
+
+				console.log( ">>", select.selectmenu( "instance" ) );
+			};
+
+			window.onload = init;
+
+		})();
+
+	</script>
+</head>
+<body>
+	<div class="wrapper">
+		<header class="header">
+			<h3 class="label">Cases</h3>
+		</header>
+		<div class="content" id="case_content">
+			
+		</div>
+	</div>
+</body>
+</html>

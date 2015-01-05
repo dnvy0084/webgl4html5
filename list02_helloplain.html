@@ -1,0 +1,187 @@
+<html>
+<head>
+	<title>hello plain</title>
+	<script type="text/javascript">
+		(function (){
+			
+			var gl,
+				vertexBuffer,
+				indexBuffer,
+				program,
+				reqId;
+
+			var mat4 = new Float32Array([
+				1, 0, 0, 0,
+				0, 1, 0, 0,
+				0, 0, 1, 0,
+				0, 0, 0, 1
+			]);
+
+			function init()
+			{
+				gl = document.getElementById( "canvas" ).getContext( "webgl" );
+
+				gl.viewport( 0, 0, gl.canvas.clientWidth, gl.canvas.clientHeight );
+				gl.clearColor( 0, 0, 0, 1 );
+
+				createBufferAndUpload();
+				createProgramAndUpload();
+
+				(function render( ms ){
+					
+					setVertexPointerAndUniformValues( ms );
+					draw();
+
+					reqId = requestAnimationFrame( render );
+				})();
+			};
+
+			function createBufferAndUpload()
+			{
+				vertexBuffer = gl.createBuffer();
+
+				var r = 0.5;
+				var vertices = new Float32Array([
+					-r, r, 		1, 0, 0,
+					r, r,		0, 1, 0,
+					r, -r,		0, 0, 1,
+					-r, -r, 	1, 0, 1
+				]);
+
+				gl.bindBuffer( gl.ARRAY_BUFFER, vertexBuffer );
+				gl.bufferData( gl.ARRAY_BUFFER, vertices, gl.STATIC_DRAW );
+
+				indexBuffer = gl.createBuffer();
+
+				var indices = new Uint16Array([
+					0, 1, 2,   0, 2, 3
+				]);
+
+				gl.bindBuffer( gl.ELEMENT_ARRAY_BUFFER, indexBuffer );
+				gl.bufferData( gl.ELEMENT_ARRAY_BUFFER, indices, gl.STATIC_DRAW );
+			};
+
+			function createProgramAndUpload()
+			{
+				program = gl.createProgram();
+
+				var vs_src = document.getElementById( "vs_src" ).innerHTML;
+				var fs_src = document.getElementById( "fs_src" ).innerHTML;
+
+				createAndCompileShader( gl.VERTEX_SHADER, vs_src, program );
+				createAndCompileShader( gl.FRAGMENT_SHADER, fs_src, program );
+
+				gl.linkProgram( program );
+
+				if( !gl.getProgramParameter( program, gl.LINK_STATUS ) )
+				{
+					throw new Error( "Link Error: " + gl.getProgramInfoLog( program ) );
+				}
+
+				gl.useProgram( program );
+			};
+
+			function createAndCompileShader( eType, src, program )
+			{
+				var shader = gl.createShader( eType );
+
+				gl.shaderSource( shader, src );
+				gl.compileShader( shader );
+
+				if( !gl.getShaderParameter( shader, gl.COMPILE_STATUS ) )
+				{
+					throw new Error( eType + ") Error Compile Shader: " + gl.getShaderInfoLog( shader ) );
+				}
+
+				gl.attachShader( program, shader );
+			}
+
+
+			function setVertexPointerAndUniformValues( ms )
+			{
+				var pos = gl.getAttribLocation( program, "pos" );
+				var color = gl.getAttribLocation( program, "color" );
+
+				gl.bindBuffer( gl.ARRAY_BUFFER, vertexBuffer );
+
+				gl.enableVertexAttribArray( pos );
+				gl.vertexAttribPointer( pos, 2, gl.FLOAT, false, 4 * 5, 4 * 0 );
+
+				gl.enableVertexAttribArray( color );
+				gl.vertexAttribPointer( color, 3, gl.FLOAT, false, 4 * 5, 4 * 2 );
+
+				var transform = gl.getUniformLocation( program, "transform" );
+
+				mat4Translate( mat4, Math.cos( ms / 500 ) / 2, Math.sin( ms / 500 ) / 2, 0 );
+				mat4RotateZ( mat4, ms / 500 );
+
+				gl.uniformMatrix4fv( transform, false, mat4 );
+			};
+
+			function mat4Translate( mat4, x, y, z )
+			{
+				mat4[12] = x;
+				mat4[13] = y;
+				mat4[14] = z;
+			};
+
+			function mat4RotateZ( mat4, rad )
+			{
+				mat4[0] = Math.cos( rad );
+				mat4[1] = Math.sin( rad );
+
+				mat4[4] = -Math.sin( rad );
+				mat4[5] = Math.cos( rad );
+			};
+
+			function draw()
+			{
+				gl.clear( gl.COLOR_BUFFER_BIT );
+
+				gl.bindBuffer( gl.ELEMENT_ARRAY_BUFFER, indexBuffer );
+				gl.drawElements( gl.TRIANGLES, 6, gl.UNSIGNED_SHORT, 4 * 0 );
+			};
+
+			window.onload = init;
+
+		})();
+	</script>
+
+	<script type="x-shader/x-vertex" id="vs_src">
+
+		precision highp float;
+
+		attribute vec2 pos;
+		attribute vec3 color;
+
+		uniform mat4 transform;
+
+		varying vec3 fragColor;
+
+		void main( void )
+		{
+			fragColor = color;
+
+			gl_Position = transform * vec4( pos, 0.0, 1.0 );
+		}
+	</script>
+
+	<script type="x-shader/x-fragment" id="fs_src">
+
+		precision highp float;
+
+		varying vec3 fragColor;
+
+		void main( void )
+		{
+			gl_FragColor = vec4( fragColor, 1.0 );
+		}
+
+	</script>
+</head>
+<body>
+	<div class="wrapper">
+		<canvas id="canvas" width="1024" height="768"></canvas>
+	</div>
+</body>
+</html>
