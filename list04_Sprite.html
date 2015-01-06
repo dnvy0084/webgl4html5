@@ -1,0 +1,364 @@
+<html>
+<head>
+	<title>Sprite</title>
+	
+	<script type="x-shader/x-vertex" id="vs_sprite">
+
+		attribute vec2 pos;
+
+		uniform mat4 model;
+		uniform mat4 projection;
+
+		void main( void )
+		{
+			gl_Position = projection * model * vec4( pos, 0.0, 1.0 );
+		}
+
+	</script>
+
+	<script type="x-shader/x-fragment" id="fs_sprite">
+
+		precision highp float;
+
+		uniform vec3 color;
+
+		void main( void )
+		{
+			gl_FragColor = vec4( color, 1.0 );
+		}
+
+	</script>
+
+	<script type="text/javascript" class="class/Sprite">
+
+		(function ( global ){
+			
+			if( global.dn == null ) 	global.dn = {};
+			if( dn.display == null ) 	dn.display = {};
+
+			var __SpritePrototype = 
+			{
+				__init: function( gl )
+				{
+					this.gl = gl;
+
+					var props = 
+					[
+						"x", this.getx, this.setx,
+						"y", this.gety, this.sety,
+						"width", this.getwidth, this.setwidth,
+						"height", this.getheight, this.setheight
+					];
+
+					this._x = 0;
+					this._y = 0;
+					this._width = 100;
+					this._height = 100;
+					this.color = 0xcc0000;
+
+					this.vertices = new Float32Array([
+						0, 0,
+						this._width, 0,
+						this._width, this._height,
+						0, this._height
+					]);
+
+					this.initGetSetProperties( props );
+
+					this.createBufferAndUpload();
+					this.createProgramAndLink();
+				},
+
+				dispose: function()
+				{
+					this.gl.deleteBuffer( this.vertexBuf );
+					this.gl.deleteBuffer( this.indexBuf );
+				},
+
+				createBufferAndUpload: function()
+				{
+					this.vertexBuf = this.gl.createBuffer();
+					this.indexBuf = this.gl.createBuffer();
+
+					this.updateGeometry();
+
+					var indices = new Uint16Array([
+						0,1,2, 0,2,3
+					]);
+
+					this.gl.bindBuffer( this.gl.ELEMENT_ARRAY_BUFFER, this.indexBuf );
+					this.gl.bufferData( this.gl.ELEMENT_ARRAY_BUFFER, indices, this.gl.STATIC_DRAW );
+				},
+
+				createProgramAndLink: function()
+				{
+					var Sprite = dn.display.Sprite;
+
+					if( Sprite.program != null ) 
+					{
+						this.program = Sprite.program;
+						return;
+					}
+
+					Sprite.program = this.gl.createProgram();
+					this.program = Sprite.program;
+
+					var vs_src = global.document.getElementById( "vs_sprite" ).innerHTML;
+					var fs_src = global.document.getElementById( "fs_sprite" ).innerHTML;
+
+					this.createShaderAndCompile( this.gl.VERTEX_SHADER, vs_src, this.program );
+					this.createShaderAndCompile( this.gl.FRAGMENT_SHADER, fs_src, this.program );
+
+					this.gl.linkProgram( this.program );
+
+					if( !this.gl.getProgramParameter( this.program, this.gl.LINK_STATUS ) )
+					{
+						throw new Error( "Link Error: " + this.gl.getProgramInfoLog( this.program ) );
+					}
+				},
+
+				createShaderAndCompile: function( type, src, program )
+				{
+					var shader = this.gl.createShader( type );
+
+					this.gl.shaderSource( shader, src );
+					this.gl.compileShader( shader );
+
+					if( !this.gl.getShaderParameter( shader, this.gl.COMPILE_STATUS ) )
+					{
+						throw new Error( "Shader Compile Error: " + this.gl.getShaderInfoLog( shader ) );
+					}
+
+					this.gl.attachShader( program, shader );
+
+					return shader;
+				},
+
+
+				draw: function()
+				{
+					console.log( this.program );
+
+					this.gl.useProgram( this.program );
+
+					this.setAttribAndUniform();
+
+					this.gl.bindBuffer( this.gl.ELEMENT_ARRAY_BUFFER, this.indexBuf );
+					this.gl.drawElements( this.gl.TRIANGLES, 6, this.gl.UNSIGNED_SHORT, 4 * 0 );
+				},
+
+				setAttribAndUniform: function()
+				{
+					var pos = this.gl.getAttribLocation( this.program, "pos" );
+
+					this.gl.enableVertexAttribArray( pos );
+
+					this.gl.bindBuffer( this.gl.ARRAY_BUFFER, this.vertexBuf );
+					this.gl.vertexAttribPointer( pos, 2, this.gl.FLOAT, false, 4 * 2, 4 * 0 );
+
+
+					// vertex shader vc
+
+					var modelMat = new Float32Array([
+						1, 0, 0, 0,
+						0, 1, 0, 0,
+						0, 0, 1, 0,
+						this._x, this._y, 0, 1
+					]);
+
+					//console.log( modelMat );
+
+					var model = this.gl.getUniformLocation( this.program, "model" );
+					this.gl.uniformMatrix4fv( model, false, modelMat );
+
+
+					var projection = this.gl.getUniformLocation( this.program, "projection" );
+					this.gl.uniformMatrix4fv( projection, false, dn.display.Sprite.projection );
+
+
+					// fragment shader fc
+
+					var color = this.gl.getUniformLocation( this.program, "color" );
+
+					var r = ( this.color >> 16 & 0xff ) / 255;
+					var g = ( this.color >> 8 & 0xff ) / 255;
+					var b = ( this.color & 0xff ) / 255;
+
+					this.gl.uniform3f( color, r, g, b );
+				},
+
+
+				initGetSetProperties: function( props )
+				{
+					for( var i = 0; i < props.length; i += 3 )
+					{
+						this.__defineGetter__( props[i], props[i+1] );
+						this.__defineSetter__( props[i], props[i+2] );
+					}
+				},
+
+
+				getx: function()
+				{
+					return this._x;
+				},
+
+				setx: function( value )
+				{
+					this._x = value;
+				},
+
+
+				gety: function()
+				{
+					return this._y;
+				},
+
+				sety: function( value )
+				{
+					this._y = value;
+				},
+
+
+				getwidth: function()
+				{
+					return this._width;
+				},
+
+				setwidth: function( value )
+				{
+					this._width = value;
+
+					this.updateGeometry();
+				},
+
+
+				getheight: function()
+				{
+					return this._height;
+				},
+
+				setheight: function( value )
+				{
+					this._height = value;
+
+					this.updateGeometry();
+				},
+
+				updateGeometry: function()
+				{
+					this.vertices[2] = this._width;
+					this.vertices[4] = this._width;
+					this.vertices[5] = this._height;
+					this.vertices[7] = this._height;
+
+					this.gl.bindBuffer( this.gl.ARRAY_BUFFER, this.vertexBuf );
+					this.gl.bufferData( this.gl.ARRAY_BUFFER, this.vertices, this.gl.STATIC_DRAW );
+				}
+
+			};
+
+			dn.display.Sprite = function( gl ){ this.__init( gl ) };
+			dn.display.Sprite.prototype = __SpritePrototype;
+
+		})( this );
+
+	</script>
+
+	<script type="text/javascript">
+
+		(function (){
+			
+			var gl,
+				sprites = [],
+				reqId;
+
+			function init()
+			{
+				gl = document.getElementById( "canvas" ).getContext( "webgl" );
+				gl.clearColor( 0, 0, 0, 1 );
+
+				var projectionMat4 = new Float32Array([
+					2 / gl.canvas.clientWidth, 0, 0, 0,
+					0, -2 / gl.canvas.clientHeight, 0, 0,
+					0, 0, 1, 0,
+					-1, 1, 0, 1
+				]);
+
+				dn.display.Sprite.projection = projectionMat4;
+
+				(function render(ms){
+					
+					gl.clear( gl.COLOR_BUFFER_BIT ); 
+					
+					var s;
+
+					for( var i = sprites.length; i--; )
+					{
+						s = sprites[i];
+
+						s.x += s.vx;
+						s.y += s.vy;
+						s.vy += 0.1;
+
+						if( s.y > gl.canvas.clientHeight )
+							sprites.splice( i, 1 )[0].dispose();
+						else
+							s.draw();
+					}
+
+					requestAnimationFrame( render );
+
+				})();
+
+				addEvents();
+			};
+
+			function addEvents()
+			{
+				gl.canvas.addEventListener( "mousedown", 
+					function( e )
+					{
+						(function createSprite( ms ){
+							
+							var s = new dn.display.Sprite( gl );
+							var velocity = 3;
+
+							s.width = s.height = 5 * Math.random() + 5;
+
+							s.x = gl.canvas.clientWidth / 2;
+							s.y = gl.canvas.clientHeight;
+
+							s.vx = velocity - 2 * velocity * Math.random();
+							s.vy = 4 * -velocity * Math.random() - 2;
+
+							s.color = 0xffffff * Math.random();
+
+							sprites.unshift( s );
+
+							reqId = requestAnimationFrame( createSprite );
+
+						})();
+					}
+				);
+
+				gl.canvas.addEventListener( "mouseup",
+					function( e )
+					{
+						return;
+						cancelAnimationFrame( reqId );
+					}
+				);
+			};
+
+			window.onload = init;
+
+		})();
+	</script>
+</head>
+<body>
+	<div class="wrapper">
+		<canvas id="canvas" width="1024" height="768"></canvas>
+	</div>
+</body>
+</html>

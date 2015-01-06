@@ -22,7 +22,7 @@
 
 				(function render( ms )
 				{
-					setAttribAndUniform();
+					setAttribAndUniform( ms );
 					draw();
 
 					reqId = requestAnimationFrame( render );
@@ -31,7 +31,7 @@
 
 			function createBufferAndUpload()
 			{
-				var width = 200;
+				var width = 100;
 				var height = 100;
 
 				var vertices = new Float32Array([
@@ -91,7 +91,7 @@
 				gl.attachShader( program, shader );
 			}
 
-			function setAttribAndUniform()
+			function setAttribAndUniform( ms )
 			{
 				var pos = gl.getAttribLocation( program, "pos" );
 				var color = gl.getAttribLocation( program, "color" );
@@ -110,10 +110,13 @@
 					1, 0, 0, 0,
 					0, 1, 0, 0,
 					0, 0, 1, 0,
-					300, 300, 0, 1
+					0, 0, 0, 1
 				]);
 
-				gl.uniformMatrix4fv( model, false, mat4 );
+				var tx = 1024 / 2 + 200 * Math.cos( ms / 500 ) - 50;
+				var ty = 768 / 2 + 200 * Math.sin( ms / 500 ) - 50;
+
+				gl.uniformMatrix4fv( model, false, translateMat4( mat4, tx, ty, 0 ) );
 
 				var size = gl.getUniformLocation( program, "size" );
 				gl.uniform2f( size, gl.canvas.clientWidth, gl.canvas.clientHeight );
@@ -127,6 +130,15 @@
 
 				var perspective = gl.getUniformLocation( program, "perspective" );
 				gl.uniformMatrix4fv( perspective, false, perspectiveMat4 );
+			};
+
+			function translateMat4( mat4, x, y, z )
+			{
+				mat4[12] += x;
+				mat4[13] += y;
+				mat4[14] += z;
+
+				return mat4;
 			};
 
 			function draw()
