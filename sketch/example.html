@@ -1,0 +1,38 @@
+<html>
+<head>
+	<title>sketch lib test</title>
+	<script type="text/javascript" src="build/sketch.js"></script>
+	<script type="text/javascript">
+
+		(function (){
+
+			function init()
+			{
+				var e = new SKETCH.EventDispatcher();
+				var d = new SKETCH.DisplayObject();
+
+				console.log( d );
+
+				e.test();
+				d.test();
+
+				SKETCH.EventDispatcher.prototype.test = function()
+				{
+					console.log( "a" );
+				};
+
+				e.test();
+				d.test();
+			};
+
+			window.onload = init;
+
+		})();
+	</script>
+</head>
+<body>
+	<div class="wrapper">
+		<canvas width="1024" height="768" id="canvas"></canvas>
+	</div>
+</body>
+</html>
