@@ -1,33 +1,77 @@
 <html>
 <head>
 	<title>sketch lib test</title>
+	<style type="text/css">
+		canvas
+		{
+			background-color: #cdcdcd;
+		}
+	</style>
 	<script type="text/javascript" src="build/sketch.js"></script>
 	<script type="text/javascript">
-
 		(function (){
+			
+			var Rect = function( w, h )
+			{
+				SKETCH.DisplayObject.call( this );
+
+				this.w = w;
+				this.h = h;
+
+				this.color = "#CC0000";
+			};
+
+			Rect.prototype = Object.create( SKETCH.DisplayObject.prototype );
+			Rect.prototype.draw = function( context )
+			{
+				this.update();
+
+				context.beginPath();
+
+				context.save();
+				context.fillStyle = this.color;
+				context.transform( 1, 0, 0, 1, this.x, this.y );
+				context.rect( 0, 0, this.w, this.h );
+				context.fill();
+				context.restore();
+			};
+
+			window.Rect = Rect;
+
+		})();
+	</script>
+	<script type="text/javascript">
+
+		(function ( global ){
 
 			function init()
 			{
-				var e = new SKETCH.EventDispatcher();
-				var d = new SKETCH.DisplayObject();
+				var context = global.document.getElementById( "canvas" ).getContext( "2d" );
+				SKETCH.context2d = context;
 
-				console.log( d );
+				var r = new Rect( 100, 100 );
 
-				e.test();
-				d.test();
+				r.x = ( context.canvas.clientWidth - r.w ) / 2;
+				r.y = ( context.canvas.clientHeight - r.h ) / 2;
 
-				SKETCH.EventDispatcher.prototype.test = function()
+				console.log( r.y );
+
+				(function render( ms )
 				{
-					console.log( "a" );
-				};
+					context.clearRect( 
+						0, 0, context.canvas.clientWidth, context.canvas.clientHeight );
 
-				e.test();
-				d.test();
+					//r.x = context.canvas.clientWidth * ( 1 + Math.cos( ms / 500 ) ) / 2;
+
+					r.draw( context );
+
+					requestAnimationFrame( render );
+				})();
 			};
 
 			window.onload = init;
 
-		})();
+		})( window );
 	</script>
 </head>
 <body>

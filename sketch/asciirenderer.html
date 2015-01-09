@@ -1,0 +1,77 @@
+<html>
+<head>
+	<title>sketch lib ascii renderer test</title>
+	<style type="text/css">
+		canvas
+		{
+			background-color: #cdcdcd;
+		}
+	</style>
+	<script type="text/javascript" src="build/sketch.js"></script>
+	<script type="text/javascript">
+
+		Float32Array.prototype.getx = function()
+		{
+			return this[0];
+		}
+
+		SKETCH.AsciiRenderer.prototype.drawLine = function( a, b )
+		{
+
+		}
+
+		var a = new Float32Array([1,2,3]);
+
+	</script>
+	<script type="text/javascript">
+
+		(function ( global ){
+			
+			function init()
+			{
+				SKETCH.context2d = global.document.getElementById( "canvas" ).getContext( "2d" );
+
+				var space = 10;
+
+				var renderer = new SKETCH.AsciiRenderer( 
+					SKETCH.context2d.canvas.clientWidth / space, 
+					SKETCH.context2d.canvas.clientHeight/ space,
+					"11px NanumGothic",
+					space,
+					space,
+					"#000000"
+				);
+
+				renderer.x = renderer.y = 0;
+				renderer.clearChar( "a" );
+				renderer.clear();
+
+				var buf = new Float32Array([
+					1,2,3, 	1,0,0, 0,0,
+					4,5,6,	0,1,0, 0,1,
+					7,8,9,	0,0,1, 1,1,
+					10,11,12, 1,0,1, 1,0
+				]);
+
+				var indices = [ 0, 1, 2, 0,2,3 ];
+
+				renderer.vertexAttribPointer( buf, 0, 3, 8, 0 );
+				renderer.vertexAttribPointer( buf, 1, 3, 8, 3 );
+				renderer.vertexAttribPointer( buf, 2, 2, 8, 6 );
+				renderer.drawTriangles( indices, 6, 0 );
+
+				renderer.render( SKETCH.context2d );
+			};
+
+			global.onload = init;
+
+		})( this );
+
+	</script>
+</head>
+<body>
+	<div class="wrapper">
+		<canvas width="1024" height="768" id="canvas"></canvas>
+	</div>
+</body>
+</html>

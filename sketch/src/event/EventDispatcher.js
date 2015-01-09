@@ -1,4 +1,10 @@
 
+/*************************************************
+*
+* EventDispatcher
+*
+*************************************************/
+
 SKETCH.EventDispatcher = function() {}
 
 SKETCH.EventDispatcher.prototype = {

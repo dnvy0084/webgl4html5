@@ -6,7 +6,7 @@ module.exports = function(grunt) {
         //uglify 설정
         uglify: {
             options: {
-                banner: '/* <%= grunt.template.today("yyyy-mm-dd") %> */ ' //파일의 맨처음 붙는 banner 설정
+                banner: '/*kim.jinhoon@nhn.com*/ ' //파일의 맨처음 붙는 banner 설정
             },
             build: {
                 src: 'build/sketch.js', //uglify할 대상 설정
@@ -16,7 +16,14 @@ module.exports = function(grunt) {
         //concat 설정
         concat:{
             basic: {
-                src: ['src/Sketch.js', 'src/event/*.js', 'src/display/*.js'], //concat 타겟 설정(앞에서부터 순서대로 합쳐진다.)
+                src: [
+                    'src/Sketch.js', 
+                    'src/math/*.js',
+                    'src/event/*.js', 
+                    'src/display/DisplayObject.js',
+                    'src/display/*.js'
+                ], //concat 타겟 설정(앞에서부터 순서대로 합쳐진다.)
+
                 dest: 'build/sketch.js' //concat 결과 파일
             }
         }
