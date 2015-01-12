@@ -19,7 +19,7 @@ SKETCH.AsciiRenderer = function( col, row, font, verticalSpace, horizontalSpace,
 	this.backgroundText = "";
 	this.renderText = "";
 	this.mem = [];
-	this.uniform = {};
+	this.uniform = [];
 
 	if( typeof this.fillStyle === "undefined" && typeof this.strokeStyle === "undefined" )
 		this.fillStyle = "#3d3d3d";
@@ -83,21 +83,44 @@ SKETCH.AsciiRenderer.prototype.render = function( context )
 	context.restore();
 };
 
-SKETCH.AsciiRenderer.prototype.vertexShader = function()
+SKETCH.AsciiRenderer.prototype.evaluateVertex = function( va, vc )
 {
-	var pos = arguments[0];
-	var color = arguments[1];
-	var uv = arguments[2];
+	if( typeof this.vertexProgram === "undefined" )
+	{
+		console.log( "Cannot find VertexShader, substitution defalut shader" );
 
-	console.log( pos, color, uv );
+		this.vertexProgram = function( va, vc )
+		{
+			console.log( va, vc );
+		}
+	}
 
-	return [ pos[0], pos[1], pos[2], 1.0 ];
+	return this.vertexProgram.apply( this, [ va, vc ] );
 };
 
-SKETCH.AsciiRenderer.prototype.fragmentShader = function()
+SKETCH.AsciiRenderer.prototype.evaluatePixel = function( x, y )
 {
+	if( typeof this.fragmentProgram === "undefined" )
+	{
+		console.log( "Cannot find FragmentShader, substitution default shader" );
 
+		this.fragmentProgram = function()
+		{
+			return "X";
+		}
+	}
+
+	if( x < 0 || x >= this.col ) return;
+	if( y < 0 || y >= this.row ) return;
+
+	var oc = this.fragmentProgram.apply( this, [ x, y ] );
+
+	this.renderText = this.replaceAt( this.renderText, y * this.col + x, oc );
+
+	//console.log( this.renderText.length );
 };
+
+
 
 SKETCH.AsciiRenderer.prototype.vertexAttribPointer = function( buf, index, size, stride, offset )
 {
@@ -112,9 +135,9 @@ SKETCH.AsciiRenderer.prototype.vertexAttribPointer = function( buf, index, size,
 	this.mem.push( vo );
 };
 
-SKETCH.AsciiRenderer.prototype.setUniform = function( key, value )
+SKETCH.AsciiRenderer.prototype.setUniform = function( index, value )
 {
-	this.uniform[ key ] = value;
+	this.uniform[ index ] = value;
 };
 
 SKETCH.AsciiRenderer.prototype.drawTriangles = function( indices, count, offset )
@@ -122,13 +145,15 @@ SKETCH.AsciiRenderer.prototype.drawTriangles = function( indices, count, offset 
 	count = count || 3;
 	offset = offset || 0;
 
-	var vo, vertexargs, bufOffset;
+	var vo, va, bufOffset, evaluatedVertices = [];
 
 	for( var i = offset; i < offset + count; i += 3 )
 	{
+		evaluatedVertices.length = 0;
+
 		for( var m = i; m < i + 3; m++ )
 		{
-			vertexargs = [];
+			va = [];
 
 			for( var j = 0; j < this.mem.length; j++ )
 			{
@@ -136,13 +161,112 @@ SKETCH.AsciiRenderer.prototype.drawTriangles = function( indices, count, offset 
 
 				bufOffset = indices[m] * vo.stride + vo.offset;
 
-				vertexargs[ vo.index ] = vo.buf.subarray( bufOffset, bufOffset + vo.size );
+				va[ vo.index ] = vo.buf.subarray( bufOffset, bufOffset + vo.size );
 			}
 
-			this.vertexShader.apply( this, vertexargs );
+			evaluatedVertices.push( this.evaluateVertex( va, this.uniform ) );
 		}
+
+		this.rasterize( evaluatedVertices );
 	}
 
 	this.mem = [];
-	this.uniform = {};
+	this.uniform = [];
+};
+
+
+/**
+*	Standard Rasterization Algorithm
+*/
+SKETCH.AsciiRenderer.prototype.rasterize = function( triangle )
+{
+	var a = new SKETCH.Vec4( this.projectionTo(triangle[0]) ),
+	 	b = new SKETCH.Vec4( this.projectionTo(triangle[1]) ),
+	 	c = new SKETCH.Vec4( this.projectionTo(triangle[2]) );
+
+	// sort points in order y value;
+	var arr = [ a, b, c ];
+
+	arr.sort( 
+		function( a, b )
+		{
+			return a.y < b.y ? -1 : parseInt( a.y > b.y );
+		}
+	);
+
+	a = arr[0];
+	b = arr[1];
+	c = arr[2];
+
+	// console.log( "(" + a.x, a.y + ")" );
+	// console.log( "(" + b.x, b.y + ")" );
+	// console.log( "(" + c.x, c.y + ")" );
+
+	var slopeAB = ( b.x - a.x ) / Math.abs( b.y - a.y );
+	var slopeAC = ( c.x - a.x ) / Math.abs( c.y - a.y );
+
+	if( Math.abs(slopeAB) === Infinity ) slopeAB = 0;
+	if( Math.abs(slopeAC) === Infinity ) slopeAC = 0;
+
+	var y = a.y;
+	var x, tx, dx, x0 = a.x, x1 = a.x;
+
+	for( ; y <= b.y; y++ )
+	{
+		if( b.x < c.x ) x = x0, tx = x1;
+		else 			x = x1, tx = x0;
+
+		//console.log( "y:", y, "x0:", x0, "x1:", x1, "start:", x, "dest:", tx );
+
+		for( ; x <= tx; x++ )
+		{
+			this.evaluatePixel( x, y );
+		}
+
+		x0 += slopeAB;
+		x1 += slopeAC;
+	}
+
+	//console.log( "---------------------------------------------" );
+
+	var slopeCA = ( a.x - c.x ) / Math.abs( a.y - c.y );
+	var slopeCB = ( b.x - c.x ) / Math.abs( b.y - c.y );
+
+	if( Math.abs(slopeCA) === Infinity ) slopeCA = 0;
+	if( Math.abs(slopeCB) === Infinity ) slopeCB = 0;
+
+	y = c.y;
+	x0 = c.x, x1 = c.x;
+
+	for( ; y >= b.y; y-- )
+	{
+		if( b.x < a.x ) x = x0, tx = x1;
+		else 			x = x1, tx = x0;
+
+		//console.log( "y:", y, "x0:", x0, "x1:", x1, "start:", x, "dest:", tx, "CA", slopeCA, "CB", slopeCB );
+
+		for( ; x <= tx; x++ )
+		{
+			this.evaluatePixel( x, y );
+		}
+
+		x1 += slopeCA;
+		x0 += slopeCB;
+	}
+};
+
+SKETCH.AsciiRenderer.prototype.projectionTo = function( vertex )
+{
+	return new Float32Array([
+		parseInt( vertex[0] * ( this.col - 1 ) ),
+		parseInt( vertex[1] * ( this.row - 1 ) ),
+		vertex[2] || 0.0,
+		vertex[3] || 1.0
+	])
+}
+
+
+SKETCH.AsciiRenderer.prototype.replaceAt = function( str, index, c )
+{
+	return str.substr( 0, index ) + c + str.substr( index + 1, str.length );
 };
