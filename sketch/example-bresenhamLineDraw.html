@@ -1,0 +1,111 @@
+<html>
+<head>
+	<title>example - Bresenhem line rasterize algorithm</title>
+	<style type="text/css">
+		body
+		{
+			margin: 0 0 0 0;
+		}
+		canvas
+		{
+			background-color: #cdcdcd;
+		}
+	</style>
+	<script type="text/javascript">
+
+		(function (){
+			
+			var canvas;
+			var context;
+
+			var colorBuffer;
+			var size = 50;
+			var col, row;
+
+			function init()
+			{
+				canvas = document.getElementById( "canvas" );
+				context = canvas.getContext( "2d" );
+
+				canvas.width = document.body.clientWidth;
+				canvas.height = document.body.clientHeight;
+
+				col = parseInt( canvas.clientWidth / size );
+				row = parseInt( canvas.clientHeight / size );
+
+				console.log( col, row );
+
+				colorBuffer = new Uint8Array( col * row );
+
+				console.log( colorBuffer[0], colorBuffer[1] );
+
+				context.clearRect( 0, 0, context.canvas.clientWidth, context.canvas.clientHeight );
+
+				draw();
+				lineTo( 0, row, col, 0 );
+			};
+
+			function draw()
+			{
+				context.save();
+
+				context.fillStyle = "#000000";
+				context.strokeStyle = "#ffffff";
+
+				var x, y;
+
+				for( var i = 0, n = colorBuffer.length; i < n; i++ )
+				{
+					x = i % col;
+					y = parseInt( i / col );
+
+					context.setTransform( 1,0,0,1, x * size, y * size );
+
+					context.beginPath();
+					context.rect(0,0,size,size);
+
+					context.fillStyle = "#0000" + fillStyle( colorBuffer[i] );
+					context.fill();
+					context.stroke();
+				}
+
+				context.restore();
+			}
+
+			function lineTo( ax, ay, bx, by )
+			{
+				context.save();
+
+				context.strokeStyle = "#ff0000";
+				context.beginPath();
+				context.moveTo( ax * size, ay * size );
+				context.lineTo( bx * size, by * size );
+				context.stroke();
+
+				context.restore();
+			};
+
+			function fillStyle( value )
+			{
+				function zfill( str, n )
+				{
+					if( str.length >= n ) return str;
+
+					return zfill( "0" + str, n );
+				}
+
+				return zfill( value.toString( 16 ), 2 );
+			};
+
+			window.onload = init;
+
+		})();
+
+	</script>
+</head>
+<body>
+	<div class="wrapper">
+		<canvas id="canvas" width="1024" height="768"></canvas>
+	</div>
+</body>
+</html>

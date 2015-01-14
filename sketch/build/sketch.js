@@ -352,68 +352,52 @@ SKETCH.DisplayObject.prototype.getChildAt = function( at )
 
 /*************************************************
 *
-* AsciiRenderer
+* CanvasRenderer
 *
 *************************************************/
 
-SKETCH.AsciiRenderer = function( col, row, font, verticalSpace, horizontalSpace, fillStyle, strokeStyle )
+SKETCH.CanvasRenderer = function( col, row )
 {
 	SKETCH.DisplayObject.call( this );
 
 	this.row = parseInt( row ) || 50;
 	this.col = parseInt( col ) || 50;
-	this.font = font || "10px dotum";
-	this.verticalSpace = verticalSpace || 10;
-	this.horizontalSpace = horizontalSpace || 10;
-	this.fillStyle = fillStyle;
-	this.strokeStyle = strokeStyle;
-	this.backgroundText = "";
-	this.renderText = "";
+	
+	this.backgroundPixel = null;
+	this.backgroundPixelInfo = null;
+
+	this.colorBuffer = [];
 	this.mem = [];
 	this.uniform = [];
-
-	if( typeof this.fillStyle === "undefined" && typeof this.strokeStyle === "undefined" )
-		this.fillStyle = "#3d3d3d";
-
-	this.clearChar( "-" );
-	this.clear();
 };
 
 /*************************************************
 *
-* AsciiRenderer
+* CanvasRenderer
 *
 *************************************************/
 
-SKETCH.AsciiRenderer.prototype = Object.create( SKETCH.DisplayObject.prototype );
+SKETCH.CanvasRenderer.prototype = Object.create( SKETCH.DisplayObject.prototype );
 
-SKETCH.AsciiRenderer.prototype.clearChar = function( c )
+SKETCH.CanvasRenderer.prototype.clearPixel = function( pixel, pixelInfo )
 {
-	this.backgroundText = "";
-
-	for( var i = 0; i < this.row * this.col; i++ )
-	{
-		this.backgroundText += c;
-	};
+	this.backgroundPixel = pixel;
+	this.backgroundPixelInfo = pixelInfo;
 };
 
-SKETCH.AsciiRenderer.prototype.clear = function()
+SKETCH.CanvasRenderer.prototype.clear = function()
 {
-	this.renderText = this.backgroundText;
+	this.colorBuffer = [];
 };
 
-SKETCH.AsciiRenderer.prototype.render = function( context )
+SKETCH.CanvasRenderer.prototype.render = function( context )
 {
 	this.update();
 
 	context.save();
-
-	context.font = this.font;
-	context.fillStyle = this.fillStyle;
-	context.textAlign = "left";
-	context.textBaseline = "top";
-
 	context.transform( 1,0,0,1, this.x, this.y );
+
+	this.backgroundPixel.initialize( context );
 
 	var n;
 
@@ -423,33 +407,37 @@ SKETCH.AsciiRenderer.prototype.render = function( context )
 		{
 			n = y * this.col + x;
 
-			context.fillText ( 
-				this.renderText[n], 
-				this.horizontalSpace * x,
-				this.verticalSpace * y
-			);
+			if( typeof this.colorBuffer[n] === "undefined" )
+			{
+				this.backgroundPixel.draw( x, y, this.backgroundPixelInfo, context );
+			}
+			else
+			{
+				this.backgroundPixel.draw( x, y, this.colorBuffer[n], context );
+			}
 		}
 	}
 
+	this.backgroundPixel.finalize( context );
 	context.restore();
 };
 
-SKETCH.AsciiRenderer.prototype.evaluateVertex = function( va, vc )
+SKETCH.CanvasRenderer.prototype.evaluateVertex = function( va, vc, varying )
 {
 	if( typeof this.vertexProgram === "undefined" )
 	{
 		console.log( "Cannot find VertexShader, substitution defalut shader" );
 
-		this.vertexProgram = function( va, vc )
+		this.vertexProgram = function( va, vc, varying )
 		{
 			console.log( va, vc );
 		}
 	}
 
-	return this.vertexProgram.apply( this, [ va, vc ] );
+	return this.vertexProgram.apply( this, [ va, vc, varying ] );
 };
 
-SKETCH.AsciiRenderer.prototype.evaluatePixel = function( x, y )
+SKETCH.CanvasRenderer.prototype.evaluatePixel = function( x, y, varying )
 {
 	if( typeof this.fragmentProgram === "undefined" )
 	{
@@ -464,16 +452,14 @@ SKETCH.AsciiRenderer.prototype.evaluatePixel = function( x, y )
 	if( x < 0 || x >= this.col ) return;
 	if( y < 0 || y >= this.row ) return;
 
-	var oc = this.fragmentProgram.apply( this, [ x, y ] );
+	var oc = this.fragmentProgram.apply( this, [ x, y, varying ] );
 
-	this.renderText = this.replaceAt( this.renderText, y * this.col + x, oc );
-
-	//console.log( this.renderText.length );
+	this.colorBuffer[ y * this.col + x ] = oc;
 };
 
 
 
-SKETCH.AsciiRenderer.prototype.vertexAttribPointer = function( buf, index, size, stride, offset )
+SKETCH.CanvasRenderer.prototype.vertexAttribPointer = function( buf, index, size, stride, offset )
 {
 	var vo = {};
 
@@ -486,25 +472,27 @@ SKETCH.AsciiRenderer.prototype.vertexAttribPointer = function( buf, index, size,
 	this.mem.push( vo );
 };
 
-SKETCH.AsciiRenderer.prototype.setUniform = function( index, value )
+SKETCH.CanvasRenderer.prototype.setUniform = function( index, value )
 {
 	this.uniform[ index ] = value;
 };
 
-SKETCH.AsciiRenderer.prototype.drawTriangles = function( indices, count, offset )
+SKETCH.CanvasRenderer.prototype.drawTriangles = function( indices, count, offset )
 {
 	count = count || 3;
 	offset = offset || 0;
 
-	var vo, va, bufOffset, evaluatedVertices = [];
+	var vo, va, v, bufOffset, evaluatedVertices = [], varying = [];
 
 	for( var i = offset; i < offset + count; i += 3 )
 	{
 		evaluatedVertices.length = 0;
+		varying.length = 0;
 
 		for( var m = i; m < i + 3; m++ )
 		{
 			va = [];
+			v = [];
 
 			for( var j = 0; j < this.mem.length; j++ )
 			{
@@ -515,10 +503,11 @@ SKETCH.AsciiRenderer.prototype.drawTriangles = function( indices, count, offset 
 				va[ vo.index ] = vo.buf.subarray( bufOffset, bufOffset + vo.size );
 			}
 
-			evaluatedVertices.push( this.evaluateVertex( va, this.uniform ) );
+			evaluatedVertices.push( this.evaluateVertex( va, this.uniform, v ) );
+			varying.push( v );
 		}
 
-		this.rasterize( evaluatedVertices );
+		this.rasterize( evaluatedVertices, varying );
 	}
 
 	this.mem = [];
@@ -529,7 +518,7 @@ SKETCH.AsciiRenderer.prototype.drawTriangles = function( indices, count, offset 
 /**
 *	Standard Rasterization Algorithm
 */
-SKETCH.AsciiRenderer.prototype.rasterize = function( triangle )
+SKETCH.CanvasRenderer.prototype.rasterize = function( triangle )
 {
 	var a = new SKETCH.Vec4( this.projectionTo(triangle[0]) ),
 	 	b = new SKETCH.Vec4( this.projectionTo(triangle[1]) ),
@@ -549,9 +538,9 @@ SKETCH.AsciiRenderer.prototype.rasterize = function( triangle )
 	b = arr[1];
 	c = arr[2];
 
-	// console.log( "(" + a.x, a.y + ")" );
-	// console.log( "(" + b.x, b.y + ")" );
-	// console.log( "(" + c.x, c.y + ")" );
+	console.log( "(" + a.x, a.y + ")" );
+	console.log( "(" + b.x, b.y + ")" );
+	console.log( "(" + c.x, c.y + ")" );
 
 	var slopeAB = ( b.x - a.x ) / Math.abs( b.y - a.y );
 	var slopeAC = ( c.x - a.x ) / Math.abs( c.y - a.y );
@@ -567,7 +556,7 @@ SKETCH.AsciiRenderer.prototype.rasterize = function( triangle )
 		if( b.x < c.x ) x = x0, tx = x1;
 		else 			x = x1, tx = x0;
 
-		//console.log( "y:", y, "x0:", x0, "x1:", x1, "start:", x, "dest:", tx );
+		console.log( "y:", y, "x0:", x0, "x1:", x1, "start:", x, "dest:", tx );
 
 		for( ; x <= tx; x++ )
 		{
@@ -578,7 +567,7 @@ SKETCH.AsciiRenderer.prototype.rasterize = function( triangle )
 		x1 += slopeAC;
 	}
 
-	//console.log( "---------------------------------------------" );
+	console.log( "---------------------------------------------" );
 
 	var slopeCA = ( a.x - c.x ) / Math.abs( a.y - c.y );
 	var slopeCB = ( b.x - c.x ) / Math.abs( b.y - c.y );
@@ -594,7 +583,7 @@ SKETCH.AsciiRenderer.prototype.rasterize = function( triangle )
 		if( b.x < a.x ) x = x0, tx = x1;
 		else 			x = x1, tx = x0;
 
-		//console.log( "y:", y, "x0:", x0, "x1:", x1, "start:", x, "dest:", tx, "CA", slopeCA, "CB", slopeCB );
+		console.log( "y:", y, "x0:", x0, "x1:", x1, "start:", x, "dest:", tx, "CA", slopeCA, "CB", slopeCB );
 
 		for( ; x <= tx; x++ )
 		{
@@ -606,7 +595,7 @@ SKETCH.AsciiRenderer.prototype.rasterize = function( triangle )
 	}
 };
 
-SKETCH.AsciiRenderer.prototype.projectionTo = function( vertex )
+SKETCH.CanvasRenderer.prototype.projectionTo = function( vertex )
 {
 	return new Float32Array([
 		parseInt( vertex[0] * ( this.col - 1 ) ),
@@ -614,10 +603,4 @@ SKETCH.AsciiRenderer.prototype.projectionTo = function( vertex )
 		vertex[2] || 0.0,
 		vertex[3] || 1.0
 	])
-}
-
-
-SKETCH.AsciiRenderer.prototype.replaceAt = function( str, index, c )
-{
-	return str.substr( 0, index ) + c + str.substr( index + 1, str.length );
 };
