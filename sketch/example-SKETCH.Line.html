@@ -1,6 +1,6 @@
 <html>
 <head>
-	<title>example - Bresenhem line rasterize algorithm</title>
+	<title>SKETCH.Line example</title>
 	<style type="text/css">
 		body
 		{
@@ -11,6 +11,7 @@
 			background-color: #cdcdcd;
 		}
 	</style>
+	<script type="text/javascript" src="build/sketch.js"></script>
 	<script type="text/javascript">
 
 		(function (){
@@ -19,8 +20,9 @@
 			var context;
 
 			var colorBuffer;
-			var size = 100;
-			var col, row, ax, ay, bx, by;
+			var lineBuffer;
+			var size = 50;
+			var col, row, a, b, c, points = [], moveIndex = 0;
 
 			function init()
 			{
@@ -33,40 +35,64 @@
 				col = parseInt( canvas.clientWidth / size );
 				row = parseInt( canvas.clientHeight / size );
 
+				a = new SKETCH.Vec4();
+				b = new SKETCH.Vec4();
+				b.x = 1;
+				b.y = 1;
+
+				c = new SKETCH.Vec4();
+				c.x = 0;
+				c.y = 1;
+
+				points = [ a, b, c ];
+
 				colorBuffer = new Uint8Array( col * row );
+				lineBuffer = new Uint16Array( col * row );
 
 				context.clearRect( 0, 0, context.canvas.clientWidth, context.canvas.clientHeight );
 
 				console.log( "init grid", col, row );
 
-				ax = 0;
-				ay = 0;
-				bx = col - 1;
-				by = row - 1;
-
-				setLineTo( ax, ay, bx, by );
 				drawGrid();
-				lineTo( ax, ay, bx, by );
-
 				canvas.addEventListener( "click", onClick );
+
+				(function randomPoint( ms ){
+					
+					onClick({
+						clientX: context.canvas.clientWidth * Math.random(),
+						clientY: context.canvas.clientHeight * Math.random()
+					});
+
+					requestAnimationFrame( randomPoint );
+				})();
 			};
 
 			function onClick( e )
 			{
-				if( e.ctrlKey )
-				{
-					ax = parseInt( e.clientX / size );
-					ay = parseInt( e.clientY / size );
-				}
-				else
-				{
-					bx = parseInt( e.clientX / size );
-					by = parseInt( e.clientY / size );
-				}
+				var p = points[ ( moveIndex++ ) % points.length ];
+
+				var w = col - 1;
+				var h = row - 1;
+
+				p.x = Math.min( 1.0, parseInt( e.clientX / size ) / w );
+				p.y = Math.min( 1.0, parseInt( e.clientY / size ) / h );
+
+				var ax = parseInt( a.x * w );
+				var ay = parseInt( a.y * h );
+				var bx = parseInt( b.x * w );
+				var by = parseInt( b.y * h );
+				var cx = parseInt( c.x * w );
+				var cy = parseInt( c.y * h );
 
 				setLineTo( ax, ay, bx, by );
+				setLineTo( ax, ay, cx, cy );
+				setLineTo( bx, by, cx, cy );
+
 				drawGrid();
+
 				lineTo( ax, ay, bx, by );
+				lineTo( ax, ay, cx, cy );
+				lineTo( bx, by, cx, cy );
 			};
 
 			function drawGrid()
@@ -95,69 +121,45 @@
 					colorBuffer[i] = 0;
 				}
 
+				var styles = [ "#ff0000", "#ff00ff", "#00ff00" ];
+
+				for( i = 0; i < styles.length; i++ )
+				{
+					mark( 
+						parseInt( points[i].x * (col - 1 ) ),
+						parseInt( points[i].y * (row - 1 ) ),
+						styles[i] );
+				}
+
+				context.restore();
+			}
+
+			function mark( x, y, color )
+			{
+				context.save();
+
+				context.setTransform( 1,0,0,1, size * x, size * y );
+
+				context.fillStyle = color;
+				context.beginPath();
+				context.rect( 0, 0, size, size );;
+				context.fill();
+				context.stroke();
+
 				context.restore();
 			}
 
 			function setLineTo( ax, ay, bx, by )
 			{
-				var s = window.performance.now();
+				var len = SKETCH.Line.lineTo( ax, ay, bx, by, lineBuffer, 0 );
 
-				var e = 0,
-					dx = Math.abs( bx - ax ),
-					dy = Math.abs( by - ay );
-
-				var d, t, x = ax, y = ay, cmp;
-
-				if( dx > dy )
+				for( var i = 0; i < len; i += 2 )
 				{
-					d = by - ay > 0 ?  1 : -1;
-					di = bx - ax > 0 ? 1 : -1;
-					cmp = di == 1 ? comparelt : comparegt;
+					var x = lineBuffer[i];
+					var y = lineBuffer[i+1];
 
-					for( ; cmp( x, bx ); x += di )
-					{
-						colorBuffer[ x + y * col ] = 255;
-
-						e += dy
-
-						if( e << 1 > dx )
-						{
-							y += d;
-							e -= dx;
-						}
-					}
+					colorBuffer[ x + y * col ] = 250;
 				}
-				else
-				{
-					d = bx - ax > 0 ?  1 : -1;
-					di = by - ay > 0 ? 1 : -1;
-					cmp = di == 1 ? comparelt : comparegt;
-
-					for( ; cmp( y, by ); y += di )
-					{
-						colorBuffer[ x + y * col ] = 255;
-
-						e += dx;
-
-						if( e << 1 > dy )
-						{
-							x += d;
-							e += -dy;
-						}
-					}
-				}
-
-				console.log( window.performance.now() - s );
-			};
-
-			function comparelt( a, b )
-			{
-				return a <= b;
-			};
-
-			function comparegt( a, b )
-			{
-				return a >= b;
 			};
 
 			function lineTo( ax, ay, bx, by )

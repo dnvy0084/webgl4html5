@@ -1,7 +1,7 @@
 
 SKETCH.Vec4 = function( rawData )
 {
-	if( rawData !== "undefined" )
+	if( typeof rawData !== "undefined" )
 	{
 		this.set( rawData );
 	}
