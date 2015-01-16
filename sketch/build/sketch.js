@@ -53,73 +53,6 @@ SKETCH.assert = function( assertion, message )
 		SKETCH.error( "Assertion Error: " + message );
 };
 
-SKETCH.Line = function(){};
-
-SKETCH.Line.lineTo = function( ax, ay, bx, by, vector, offset )
-{
-	vector = vector || [];
-	offset = offset || 0;
-
-	var e = 0, p = offset;
-		dx = Math.abs( bx - ax ),
-		dy = Math.abs( by - ay );
-
-	var d, t, x = ax, y = ay, cmp;
-
-	if( dx > dy )
-	{
-		d = by - ay > 0 ?  1 : -1;
-		di = bx - ax > 0 ? 1 : -1;
-		cmp = di == 1 ? SKETCH.Line.cmplt : SKETCH.Line.cmpgt;
-
-		for( ; cmp( x, bx ); x += di )
-		{
-			vector[ p++ ] = x;
-			vector[ p++ ] = y;
-
-			e += dy
-
-			if( e << 1 > dx )
-			{
-				y += d;
-				e -= dx;
-			}
-		}
-	}
-	else
-	{
-		d = bx - ax > 0 ?  1 : -1;
-		di = by - ay > 0 ? 1 : -1;
-		cmp = di == 1 ? SKETCH.Line.cmplt : SKETCH.Line.cmpgt;
-
-		for( ; cmp( y, by ); y += di )
-		{
-			vector[ p++ ] = x;
-			vector[ p++ ] = y;
-
-			e += dx;
-
-			if( e << 1 > dy )
-			{
-				x += d;
-				e += -dy;
-			}
-		}
-	}
-
-	return p;
-}
-
-SKETCH.Line.cmplt = function( a, b )
-{
-	return a <= b;
-};
-
-SKETCH.Line.cmpgt = function( a, b )
-{
-	return a >= b;
-};
-
 SKETCH.Mat4 = function()
 {
 	this.rawData = new Float32Array([
@@ -170,6 +103,121 @@ SKETCH.Mat4.prototype =
 
 	}
 };
+
+SKETCH.Pixel = function(){};
+
+SKETCH.Pixel.lineTo = function( ax, ay, bx, by, vector, offset )
+{
+	vector = vector || [];
+	offset = offset || 0;
+
+	var e = 0, p = offset;
+		dx = Math.abs( bx - ax ),
+		dy = Math.abs( by - ay );
+
+	var ix, iy, t, x = ax, y = ay, cmp;
+
+	if( dx > dy )
+	{
+		iy = by > ay ? 1 : -1;
+		ix = bx > ax ? 1 : -1;
+		t = bx + ix;
+
+		for( ; x != t; x += ix )
+		{
+			vector[ p++ ] = x;
+			vector[ p++ ] = y;
+
+			e += dy;
+
+			if( e << 1 > dx )
+			{
+				y += iy;
+				e -= dx;
+			}
+		}
+	}
+	else
+	{
+		iy = bx > ax ?  1 : -1;
+		ix = by > ay ? 1 : -1;
+		t = by + ix;
+
+		for( ; y != t; y += ix )
+		{
+			vector[ p++ ] = x;
+			vector[ p++ ] = y;
+
+			e += dx;
+
+			if( e << 1 > dy )
+			{
+				x += iy;
+				e += -dy;
+			}
+		}
+	}
+
+	return p;
+};
+
+
+// ( ay <= by <= cy ) need to sort by y value
+SKETCH.Pixel.rasterize = function( ax, ay, bx, by, cx, cy, pixels, offset )
+{
+	// console.log( 
+	// 	"A(%d,%d), B(%d,%d), C(%d,%d)",
+	// 	ax, ay, bx, by, cx, cy
+	// );
+
+	pixels = pixels || [];
+	offset = offset || 0;
+
+	var x, y = ay, t = cy, vector, p, v, 
+		minX = 0xffffff, maxX = -0xffffff,
+		vectors = [ [], [], [] ],
+		points = [ 1, 1, 1 ],
+		lengths = [ 
+			SKETCH.Pixel.lineTo( ax, ay, bx, by, vectors[0] ), 
+			SKETCH.Pixel.lineTo( ax, ay, cx, cy, vectors[1] ), 
+			SKETCH.Pixel.lineTo( bx, by, cx, cy, vectors[2] ) 
+		];
+
+	for( ; y <= t; y++ )
+	{
+		minX = 0xffffff;
+		maxX = -1;
+
+		for( var n = vectors.length; n--; )
+		{
+			vector = vectors[n];
+
+			for( ;; points[n] += 2 )
+			{
+				if( p = points[n], p >= lengths[n] ) break;
+				if( vector[p] != y ) break;
+
+				v = vector[p-1];
+
+				if( v < minX ) minX = v;
+				if( v > maxX ) maxX = v;
+
+				//console.log( "y(%d)->t(%d), n: %d, p: %d, value: %d", y, t, n, p, vector[p] );
+			}
+		}
+
+		//console.log( "min(%d)-->max(%d)", minX, maxX );
+
+		for( x = minX; x <= maxX; x++ )
+		{
+			pixels[ offset++ ] = x;
+			pixels[ offset++ ] = y;
+		}
+	}
+
+	return offset;
+};
+
 
 /*************************************************
 *
@@ -585,80 +633,32 @@ SKETCH.CanvasRenderer.prototype.drawTriangles = function( indices, count, offset
 /**
 *	Standard Rasterization Algorithm
 */
-SKETCH.CanvasRenderer.prototype.rasterize = function( triangle )
+SKETCH.CanvasRenderer.prototype.rasterize = function( triangle, varying )
 {
-	var a = new SKETCH.Vec4( this.projectionTo(triangle[0]) ),
-	 	b = new SKETCH.Vec4( this.projectionTo(triangle[1]) ),
-	 	c = new SKETCH.Vec4( this.projectionTo(triangle[2]) );
-
-	// sort points in order y value;
-	var arr = [ a, b, c ];
-
-	arr.sort( 
+	triangle.sort( 
 		function( a, b )
 		{
-			return a.y < b.y ? -1 : parseInt( a.y > b.y );
+			return a[1] < b[1] ? -1 : Number( a[1] > b[1] );
 		}
 	);
 
-	a = arr[0];
-	b = arr[1];
-	c = arr[2];
+	var frags = [];
 
-	console.log( "(" + a.x, a.y + ")" );
-	console.log( "(" + b.x, b.y + ")" );
-	console.log( "(" + c.x, c.y + ")" );
+	var w = this.col - 1,
+		h = this.row - 1;
 
-	var slopeAB = ( b.x - a.x ) / Math.abs( b.y - a.y );
-	var slopeAC = ( c.x - a.x ) / Math.abs( c.y - a.y );
+	var ax = parseInt( triangle[0][0] * w ),
+		ay = parseInt( triangle[0][1] * h ),
+		bx = parseInt( triangle[1][0] * w ),
+		by = parseInt( triangle[1][1] * h ),
+		cx = parseInt( triangle[2][0] * w ),
+		cy = parseInt( triangle[2][1] * h );
 
-	if( Math.abs(slopeAB) === Infinity ) slopeAB = 0;
-	if( Math.abs(slopeAC) === Infinity ) slopeAC = 0;
+	var len = SKETCH.Pixel.rasterize( ax, ay, bx, by, cx, cy, frags );
 
-	var y = a.y;
-	var x, tx, dx, x0 = a.x, x1 = a.x;
-
-	for( ; y <= b.y; y++ )
+	for( var i = 0; i < len; i += 2 )
 	{
-		if( b.x < c.x ) x = x0, tx = x1;
-		else 			x = x1, tx = x0;
-
-		console.log( "y:", y, "x0:", x0, "x1:", x1, "start:", x, "dest:", tx );
-
-		for( ; x <= tx; x++ )
-		{
-			this.evaluatePixel( x, y );
-		}
-
-		x0 += slopeAB;
-		x1 += slopeAC;
-	}
-
-	console.log( "---------------------------------------------" );
-
-	var slopeCA = ( a.x - c.x ) / Math.abs( a.y - c.y );
-	var slopeCB = ( b.x - c.x ) / Math.abs( b.y - c.y );
-
-	if( Math.abs(slopeCA) === Infinity ) slopeCA = 0;
-	if( Math.abs(slopeCB) === Infinity ) slopeCB = 0;
-
-	y = c.y;
-	x0 = c.x, x1 = c.x;
-
-	for( ; y >= b.y; y-- )
-	{
-		if( b.x < a.x ) x = x0, tx = x1;
-		else 			x = x1, tx = x0;
-
-		console.log( "y:", y, "x0:", x0, "x1:", x1, "start:", x, "dest:", tx, "CA", slopeCA, "CB", slopeCB );
-
-		for( ; x <= tx; x++ )
-		{
-			this.evaluatePixel( x, y );
-		}
-
-		x1 += slopeCA;
-		x0 += slopeCB;
+		this.evaluatePixel( frags[i], frags[i+1] );
 	}
 };
 

@@ -167,80 +167,32 @@ SKETCH.CanvasRenderer.prototype.drawTriangles = function( indices, count, offset
 /**
 *	Standard Rasterization Algorithm
 */
-SKETCH.CanvasRenderer.prototype.rasterize = function( triangle )
+SKETCH.CanvasRenderer.prototype.rasterize = function( triangle, varying )
 {
-	var a = new SKETCH.Vec4( this.projectionTo(triangle[0]) ),
-	 	b = new SKETCH.Vec4( this.projectionTo(triangle[1]) ),
-	 	c = new SKETCH.Vec4( this.projectionTo(triangle[2]) );
-
-	// sort points in order y value;
-	var arr = [ a, b, c ];
-
-	arr.sort( 
+	triangle.sort( 
 		function( a, b )
 		{
-			return a.y < b.y ? -1 : parseInt( a.y > b.y );
+			return a[1] < b[1] ? -1 : Number( a[1] > b[1] );
 		}
 	);
 
-	a = arr[0];
-	b = arr[1];
-	c = arr[2];
+	var frags = [];
 
-	console.log( "(" + a.x, a.y + ")" );
-	console.log( "(" + b.x, b.y + ")" );
-	console.log( "(" + c.x, c.y + ")" );
+	var w = this.col - 1,
+		h = this.row - 1;
 
-	var slopeAB = ( b.x - a.x ) / Math.abs( b.y - a.y );
-	var slopeAC = ( c.x - a.x ) / Math.abs( c.y - a.y );
+	var ax = parseInt( triangle[0][0] * w ),
+		ay = parseInt( triangle[0][1] * h ),
+		bx = parseInt( triangle[1][0] * w ),
+		by = parseInt( triangle[1][1] * h ),
+		cx = parseInt( triangle[2][0] * w ),
+		cy = parseInt( triangle[2][1] * h );
 
-	if( Math.abs(slopeAB) === Infinity ) slopeAB = 0;
-	if( Math.abs(slopeAC) === Infinity ) slopeAC = 0;
+	var len = SKETCH.Pixel.rasterize( ax, ay, bx, by, cx, cy, frags );
 
-	var y = a.y;
-	var x, tx, dx, x0 = a.x, x1 = a.x;
-
-	for( ; y <= b.y; y++ )
+	for( var i = 0; i < len; i += 2 )
 	{
-		if( b.x < c.x ) x = x0, tx = x1;
-		else 			x = x1, tx = x0;
-
-		console.log( "y:", y, "x0:", x0, "x1:", x1, "start:", x, "dest:", tx );
-
-		for( ; x <= tx; x++ )
-		{
-			this.evaluatePixel( x, y );
-		}
-
-		x0 += slopeAB;
-		x1 += slopeAC;
-	}
-
-	console.log( "---------------------------------------------" );
-
-	var slopeCA = ( a.x - c.x ) / Math.abs( a.y - c.y );
-	var slopeCB = ( b.x - c.x ) / Math.abs( b.y - c.y );
-
-	if( Math.abs(slopeCA) === Infinity ) slopeCA = 0;
-	if( Math.abs(slopeCB) === Infinity ) slopeCB = 0;
-
-	y = c.y;
-	x0 = c.x, x1 = c.x;
-
-	for( ; y >= b.y; y-- )
-	{
-		if( b.x < a.x ) x = x0, tx = x1;
-		else 			x = x1, tx = x0;
-
-		console.log( "y:", y, "x0:", x0, "x1:", x1, "start:", x, "dest:", tx, "CA", slopeCA, "CB", slopeCB );
-
-		for( ; x <= tx; x++ )
-		{
-			this.evaluatePixel( x, y );
-		}
-
-		x1 += slopeCA;
-		x0 += slopeCB;
+		this.evaluatePixel( frags[i], frags[i+1] );
 	}
 };
 

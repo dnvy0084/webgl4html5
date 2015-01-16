@@ -1,0 +1,376 @@
+<html>
+<head>
+	<title>SKETCH.Pixel.rasterize example</title>
+	<style type="text/css">
+		body
+		{
+			margin: 0 0 0 0;
+		}
+		canvas
+		{
+			background-color: #7d7d7d;
+			position: absolute;
+		}
+		.fps
+		{
+			position: absolute;
+			x: 0;
+			y: 0;
+		}
+	</style>
+	<script type="text/javascript" src="build/sketch.js"></script>
+	<script type="text/javascript">
+
+		(function (){
+			
+			var canvas;
+			var context;
+
+			var colorBuffer;
+			var lineBuffer;
+			var size = 50;
+			var col, row, a, b, c, points = [], moveIndex = 0;
+			var fps;
+			var generateRandomTriangles = false;
+
+			function init()
+			{
+				fps = document.getElementById( "fps" );
+
+				canvas = document.getElementById( "canvas" );
+				context = canvas.getContext( "2d" );
+
+				canvas.width = document.body.clientWidth;
+				canvas.height = document.body.clientHeight;
+
+				col = parseInt( canvas.clientWidth / size );
+				row = parseInt( canvas.clientHeight / size );
+
+				a = new SKETCH.Vec4();
+				a.x = -1;
+				a.y = -1;
+
+				b = new SKETCH.Vec4();
+				b.x = 1;
+				b.y = 1;
+
+				c = new SKETCH.Vec4();
+				c.x = -1;
+				c.y = 0.5;
+
+				points = [ a, b, c ];
+
+				colorBuffer = new Uint8Array( col * row );
+				lineBuffer = new Uint16Array( col * row );
+
+				context.clearRect( 0, 0, context.canvas.clientWidth, context.canvas.clientHeight );
+
+				console.log( "init grid", col, row );
+
+				drawGrid();
+				canvas.addEventListener( "click", onClick );
+
+				onClick({
+					clientX: -size * 3,
+					clientY: -size * 3
+				});
+			};
+
+			function randomPoint( ms )
+			{
+				fps.innerHTML = 1000 / ms;
+
+				onClick({
+					clientX: context.canvas.clientWidth * Math.random(),
+					clientY: context.canvas.clientHeight * Math.random()
+				});
+
+				// if( generateRandomTriangles ) 
+				// 	requestAnimationFrame( randomPoint );
+			}
+
+			function onClick( e )
+			{
+				if( typeof e.type !== "undefined" ) 
+				{
+					generateRandomTriangles = !generateRandomTriangles;
+
+					if( generateRandomTriangles )
+						randomPoint();
+				}
+
+				var p = points[ ( moveIndex++ ) % points.length ];
+
+				var w = col - 1;
+				var h = row - 1;
+
+				p.x = parseInt( e.clientX / size ) / w;
+				p.y = parseInt( e.clientY / size ) / h;
+
+				console.log( a == p, p, e );
+
+				var sorted = [];
+
+				for( var n = points.length; n--; )
+				{
+					sorted[n] = points[n];
+				}
+
+				sorted.sort( 
+					function( a, b ){
+						return a.y < b.y ? -1 : Number( a.y > b.y );
+				});
+
+				var ax = parseInt( sorted[0].x * w );
+				var ay = parseInt( sorted[0].y * h );
+				var bx = parseInt( sorted[1].x * w );
+				var by = parseInt( sorted[1].y * h );
+				var cx = parseInt( sorted[2].x * w );
+				var cy = parseInt( sorted[2].y * h );
+
+				context.clearRect( 0, 0, context.canvas.clientWidth, context.canvas.clientHeight );
+
+				rasterize( ax, ay, bx, by, cx, cy );
+
+				drawGrid();
+
+				lineTo( ax, ay, bx, by );
+				lineTo( ax, ay, cx, cy );
+				lineTo( bx, by, cx, cy );
+			};
+
+			// ( ay <= by <= cy ) need to sort by y value
+			function rasterize( ax, ay, bx, by, cx, cy )
+			{
+				console.log( 
+					"A(%d,%d), B(%d,%d), C(%d,%d)",
+					ax, ay, bx, by, cx, cy
+				);
+
+				var x, y = ay, t = cy, vector, p, v, 
+					minX = 0xffffff, maxX = -1,
+					vectors = [ [], [], [] ],
+					points = [ 1, 1, 1 ],
+					lengths = [ 
+						SKETCH.Pixel.lineTo( ax, ay, bx, by, vectors[0] ), 
+						SKETCH.Pixel.lineTo( ax, ay, cx, cy, vectors[1] ), 
+						SKETCH.Pixel.lineTo( bx, by, cx, cy, vectors[2] ) 
+					];
+
+				drawLine( vectors );
+
+				console.log( vectors );
+
+				for( ; y <= t; y++ )
+				{
+					minX = 0xffffff;
+					maxX = -0xffffff;
+
+					for( var n = vectors.length; n--; )
+					{
+						vector = vectors[n];
+
+						for( ;; points[n] += 2 )
+						{
+							if( p = points[n], p >= lengths[n] ) break;
+							if( vector[p] != y ) break;
+
+							v = vector[p-1];
+
+							if( v < minX ) minX = v;
+							if( v > maxX ) maxX = v;
+
+							console.log( "y(%d)->t(%d), n: %d, p: %d, value: %d", y, t, n, p, vector[p] );
+						}
+					}
+
+					console.log( "min(%d)-->max(%d)", minX, maxX );
+
+					for( x = minX; x <= maxX; x++ )
+					{
+						if( x < 0 || x >= col ) continue;
+						if( y < 0 || y >= row ) continue;
+
+						console.log( x, y );
+
+						colorBuffer[ x + y * col ] += 50;
+					}
+				}
+			};
+
+			function drawLine( vectors )
+			{
+				for( var n = vectors.length; n--; )
+				{
+					var vector = vectors[n];
+
+					for( var i = 0; i < vector.length; i += 2 )
+					{
+						var x = vector[i];
+						var y = vector[i+1];
+
+						if( x < 0 || x >= col ) continue;
+						if( y < 0 || y >= row ) continue;
+
+						colorBuffer[ x + y * col ] += 205;
+					}
+				}
+			}
+
+			function drawGrid()
+			{
+				context.save();
+
+				context.fillStyle = "#000000";
+				context.strokeStyle = "#cdcdcd";
+				context.font = "11px dotum";
+				context.textBaseLine = "hanging";
+
+				var x, y;
+
+				for( var i = 0, n = colorBuffer.length; i < n; i++ )
+				{
+					if( colorBuffer[i] == 0 ) continue;
+
+					x = i % col;
+					y = parseInt( i / col );
+
+					context.setTransform( 1,0,0,1, x * size, y * size );
+
+					context.beginPath();
+					context.rect(0,0,size,size);
+
+					if( colorBuffer[i] > 0 )
+					{
+						context.fillStyle = "#0000" + fillStyle( colorBuffer[i] );
+						context.fill();
+					}
+
+					//context.stroke();
+
+					colorBuffer[i] = 0;
+
+					if( size < 50 ) continue;
+
+					context.fillStyle = "#cdcdcd";
+					context.transform( 1,0,0,1, 2,10 );
+					context.fillText( x + ":" + y, 0, 0 );
+				}
+
+				var styles = [ "#ff0000", "#00ff00", "#ff00ff" ];
+				var texts = [ "A", "B", "C" ];
+
+				for( i = 0; i < styles.length; i++ )
+				{
+					mark( 
+						parseInt( points[i].x * (col - 1 ) ),
+						parseInt( points[i].y * (row - 1 ) ),
+						styles[i],
+						texts[i] 
+					);
+				}
+
+				context.restore();
+			}
+
+			function mark( x, y, color, text )
+			{
+				context.save();
+
+				context.setTransform( 1,0,0,1, size * x, size * y );
+
+				context.strokeStyle = color;
+				context.fillStyle = color;
+				context.beginPath();
+				context.rect( 0, 0, size, size );;
+				//context.fill();
+				context.stroke();
+
+				context.font = "bold 15px NanumGothic";
+				context.transform( 1,0,0,1, size >> 1, size >> 1 );
+				context.fillText( text, 0, 0 );
+
+				context.restore();
+			}
+
+			function setLineTo( ax, ay, bx, by )
+			{
+				var line = [];
+				var p = SKETCH.Pixel.lineTo( ax, ay, bx, by, line );
+
+				for( var i = 0; i < p; i += 2 )
+				{
+					var x = line[i];
+					var y = line[i+1];
+
+					colorBuffer[ x + y * col ] = 255;
+				}
+			}
+
+			function setLineToWithSlope( ax, ay, bx, by )
+			{
+				ax = parseInt( ax );
+				ay = parseInt( ay );
+				bx = parseInt( bx );
+				by = parseInt( by );
+
+				var x = ax, y = ay;
+				var dx = bx - ax;
+				var dy = Math.abs( by - ay );
+				var m = dy == 0 ? dx : dx / dy;
+				var d = by - ay > 0 ? 1: -1;
+				var t = by + d;
+
+				// console.log( 
+				// 	"A(%d,%d)-B(%d,%d) dx(%d), dy(%d), m(%f), d(%d), t(%d)",
+				// 	ax, ay, bx, by, dx, dy, m, d, t
+				// )
+
+				for( ; y != t; y += d )
+				{
+					colorBuffer[ Math.round(x) + y * col ] = 255;
+
+					x += m;
+
+					console.log( x, y )
+				}
+			};
+
+			function lineTo( ax, ay, bx, by )
+			{
+				context.save();
+
+				context.strokeStyle = "#ff0000";
+				context.beginPath();
+				context.moveTo( ax * size, ay * size );
+				context.lineTo( bx * size, by * size );
+				context.stroke();
+
+				context.restore();
+			};
+
+			function fillStyle( value )
+			{
+				function zfill( str, n )
+				{
+					if( str.length >= n ) return str;
+
+					return zfill( "0" + str, n );
+				}
+
+				return zfill( value.toString( 16 ), 2 );
+			};
+
+			window.onload = init;
+
+		})();
+
+	</script>
+</head>
+<body>
+	<div class="wrapper">
+		<canvas id="canvas" width="1024" height="768"></canvas>
+		<div id="fps"></div>
+	</div>
+</body>
+</html>
