@@ -16,6 +16,7 @@ SKETCH.CanvasRenderer = function( col, row )
 	this.backgroundPixelInfo = null;
 
 	this.colorBuffer = [];
+	this.depthBuffer = new Float32Array( col * row );
 	this.mem = [];
 	this.uniform = [];
 };
@@ -80,6 +81,8 @@ SKETCH.CanvasRenderer.prototype.evaluateVertex = function( va, vc, varying )
 		this.vertexProgram = function( va, vc, varying )
 		{
 			console.log( va, vc );
+
+			return null;
 		}
 	}
 
@@ -192,16 +195,6 @@ SKETCH.CanvasRenderer.prototype.rasterize = function( triangle, varying )
 
 	for( var i = 0; i < len; i += 2 )
 	{
-		this.evaluatePixel( frags[i], frags[i+1] );
+		this.evaluatePixel( frags[i], frags[i+1], varying );
 	}
-};
-
-SKETCH.CanvasRenderer.prototype.projectionTo = function( vertex )
-{
-	return new Float32Array([
-		parseInt( vertex[0] * ( this.col - 1 ) ),
-		parseInt( vertex[1] * ( this.row - 1 ) ),
-		vertex[2] || 0.0,
-		vertex[3] || 1.0
-	])
 };
