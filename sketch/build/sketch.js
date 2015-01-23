@@ -103,6 +103,402 @@ SKETCH.Mat4.prototype =
 
 	}
 };
+/*************************************************
+*
+* Opcodes methods for shader program;
+*
+*************************************************/
+
+var OP = { version: "Sketch opcodes for shader program Ver. 1.0.0" };
+
+
+
+/*************************************************
+*
+* Opcodes methods - arithmetic
+*
+*************************************************/
+
+/**
+ *	a + b
+ */
+OP.add = function( a, b, dest )
+{
+	dest = dest || a;
+
+	for( var i = 0, n = a.length; i < n; i++ )
+	{
+		dest[i] = a[i] + b[i];
+	}
+
+	return dest;
+};
+
+
+/**
+ *	a - b
+ */
+OP.sub = function( a, b, dest )
+{
+	dest = dest || a;
+
+	for( var i = 0, n = a.length; i < n; i++ )
+	{
+		dest[i] = a[i] - b[i];
+	}
+
+	return dest;
+};
+
+
+/**
+ *	a * b
+ */
+OP.mul = function( a, b, dest )
+{
+	dest = dest || a;
+
+	for( var i = 0, n = a.length; i < n; i++ )
+	{
+		dest[i] = a[i] * b[i];
+	}
+
+	return dest;
+};
+
+/**
+ *	a / b
+ */
+OP.div = function( a, b, dest )
+{
+	dest = dest || a;
+
+	for( var i = 0, n = a.length; i < n; i++ )
+	{
+		dest[i] = a[i] / b[i];
+	}
+
+	return dest;
+};
+
+/**
+ *	1 / a
+ */
+OP.rcp = function( a, dest )
+{
+	dest = dest || a;
+
+	for( var i = 0, n = a.length; i < n; i++ )
+	{
+		dest[i] = 1 / a[i];
+	}
+
+	return dest;
+};
+
+/**
+ *	a - floor(a)
+ */
+OP.frc = function( a, dest )
+{
+	dest = dest || a;
+
+	for( var i = 0, n = a.length; i < n; i++ )
+	{
+		dest[i] = a[i] - parseInt( a[i] );
+	}
+
+	return dest;
+};
+
+/**
+ *	-a
+ */
+OP.neg = function( a, dest )
+{
+	dest = dest || a;
+
+	for( var i = 0, n = a.length; i < n; i++ )
+	{
+		dest[i] = -a[i];
+	}
+
+	return dest;
+};
+
+
+
+/*************************************************
+*
+* Opcodes methods - trigonometric
+*
+*************************************************/
+
+/**
+ *	sin(a);
+ */
+OP.sin = function( a, dest )
+{
+	dest = dest || a;
+
+	for( var i = 0, n = a.length; i < n; i++ )
+	{
+		dest[i] = Math.sin( a[i] );
+	}
+
+	return dest;
+};
+
+/**
+ *	cos(a);
+ */
+OP.frc = function( a, dest )
+{
+	dest = dest || a;
+
+	for( var i = 0, n = a.length; i < n; i++ )
+	{
+		dest[i] = Math.cos( a[i] );
+	}
+
+	return dest;
+};
+
+/*************************************************
+*
+* Opcodes methods - algebraic
+*
+*************************************************/
+
+/**
+ *	minimum between a and b
+ */
+OP.min = function( a, b, dest )
+{
+	dest = dest || a;
+
+	var v0, v1;
+
+	for( var i = 0, n = a.length; i < n; i++ )
+	{
+		v0 = a[i], v1 = b[i];
+
+		dest[i] = v0 <= v1 ? v0 : v1;
+	}
+
+	return dest;
+};
+
+
+/**
+ *	maximum between a and b
+ */
+OP.max = function( a, b, dest )
+{
+	dest = dest || a;
+
+	var v0, v1;
+
+	for( var i = 0, n = a.length; i < n; i++ )
+	{
+		v0 = a[i], v1 = b[i];
+
+		dest[i] = v0 >= v1 ? v0 : v1;
+	}
+
+	return dest;
+};
+
+
+/**
+ *	Math.sqrt, component-wise
+ */
+OP.sqrt = function( a, dest )
+{
+	dest = dest || a;
+
+	for( var i = 0, n = a.length; i < n; i++ )
+	{
+		dest[i] = Math.sqrt( a[i] );
+	}
+
+	return dest;
+};
+
+
+/**
+ *	1 / Math.sqrt, component-wise
+ */
+OP.rsq = function( a, dest )
+{
+	dest = dest || a;
+
+	for( var i = 0, n = a.length; i < n; i++ )
+	{
+		dest[i] = 1 / Math.sqrt( a[i] );
+	}
+
+	return dest;
+};
+
+
+/**
+ *	Math.pow, component-wise
+ */
+OP.pow = function( a, value, dest )
+{
+	dest = dest || a;
+
+	for( var i = 0, n = a.length; i < n; i++ )
+	{
+		if( typeof a[i] === "undefined" ) break;
+
+		dest[i] = Math.pow( a[i], value );
+	}
+
+	return dest;
+};
+
+
+/**
+ *	Math.log2, component-wise
+ */
+OP.log = function( a, dest )
+{
+	dest = dest || a;
+
+	for( var i = 0, n = a.length; i < n; i++ )
+	{
+		dest[i] = Math.log2( a[i] );
+	}
+
+	return dest;
+};
+
+
+/**
+ *	Math.exp, component-wise
+ */
+OP.exp = function( a, dest )
+{
+	dest = dest || a;
+
+	for( var i = 0, n = a.length; i < n; i++ )
+	{
+		dest[i] = Math.exp( a[i] );
+	}
+
+	return dest;
+};
+
+
+/**
+ *	normalize
+ */
+OP.nrm = function( a, dest )
+{
+	dest = dest || a;
+
+	var len = 0;
+
+	for( var i = 0, n = a.length; i < n; i++ )
+	{
+		var x = a[i];
+
+		len += x*x;
+	}
+
+	if( len == 0 ) return;
+
+	len = 1 / Math.sqrt( len );
+
+	for( i = 0; i < n; i++ )
+	{
+		dest[i] = a[i] * len;
+	}
+
+	return dest;
+};
+
+
+/**
+ *	Math.abs, component-wise
+ */
+OP.abs = function( a, dest )
+{
+	dest = dest || a;
+	
+	for( var i = 0, n = a.length; i < n; i++ )
+	{
+		dest[i] = a[i] >= 0 ? a[i] : -a[i];
+	}
+
+	return dest;
+};
+
+
+/**
+ *	Math.min( 1.0, Math.max( 0.0, n ) ), component-wise
+ */
+OP.sat = function( a, dest )
+{
+	dest = dest || a;
+
+	for( var i = 0, n = a.length; i < n; i++ )
+	{
+		dest[i] = Math.min( 1.0, Math.max( 0.0, a[i] ) );
+	}
+
+	return dest;
+};
+
+
+
+
+/*************************************************
+*
+* Opcodes methods - vector and matrix
+*
+*************************************************/
+
+OP.crs = function( a, b, dest )
+{
+	
+}
+
+OP.dot = function( a, b )
+{
+	var value = 0;
+
+	for( var i = 0, n = a.length; i < n; i++ )
+	{
+		value += a[i] * b[i];
+	}
+
+	return value;
+}
+
+OP.mat = function( a, m, dest )
+{
+	dest = dest || a;
+
+	var b = [];
+
+	for( var i = 0, n = a.length; i < n; i++ ) 
+		b[i] = a[i];
+
+	for( i = 0; i < n; i++ )
+	{
+		dest[i] = 0;
+
+		for( var j = 0; j < n; j++ )
+		{
+			dest[i] += m[ i + j * 4 ] * b[j];
+		}
+	}
+
+	return dest;
+}
 
 SKETCH.Pixel = function(){};
 
@@ -111,7 +507,7 @@ SKETCH.Pixel.lineTo = function( ax, ay, bx, by, vector, offset )
 	vector = vector || [];
 	offset = offset || 0;
 
-	var e = 0, p = offset;
+	var e = 0,
 		dx = Math.abs( bx - ax ),
 		dy = Math.abs( by - ay );
 
@@ -125,8 +521,8 @@ SKETCH.Pixel.lineTo = function( ax, ay, bx, by, vector, offset )
 
 		for( ; x != t; x += ix )
 		{
-			vector[ p++ ] = x;
-			vector[ p++ ] = y;
+			vector[ offset++ ] = x;
+			vector[ offset++ ] = y;
 
 			e += dy;
 
@@ -145,20 +541,20 @@ SKETCH.Pixel.lineTo = function( ax, ay, bx, by, vector, offset )
 
 		for( ; y != t; y += ix )
 		{
-			vector[ p++ ] = x;
-			vector[ p++ ] = y;
+			vector[ offset++ ] = x;
+			vector[ offset++ ] = y;
 
 			e += dx;
 
 			if( e << 1 > dy )
 			{
 				x += iy;
-				e += -dy;
+				e -= dy;
 			}
 		}
 	}
 
-	return p;
+	return offset;
 };
 
 
@@ -221,45 +617,11 @@ SKETCH.Pixel.rasterize = function( ax, ay, bx, by, cx, cy, pixels, offset )
 
 /*************************************************
 *
-* Vector 2
+* Vector3( x, y, z )
 *
 *************************************************/
 
-SKETCH.Vec2 = function( x, y )
-{
-	this._x = x || 0;
-	this._y = y || 0;
-};
-
-SKETCH.Vec2.prototype = 
-{
-	constructor: SKETCH.Vec2,
-
-	get x()
-	{
-		return this._x;
-	},
-	set x( value )
-	{
-		this._x = value;
-	},
-
-	get y()
-	{
-		return this._y;
-	},
-	set y( value )
-	{
-		this._y = value;
-	},
-
-	get length()
-	{
-		return Math.sqrt( this._x * this._x + this._y * this._y );
-	},
-}
-
-SKETCH.Vec4 = function( rawData )
+SKETCH.Vec3 = function( rawData )
 {
 	if( typeof rawData !== "undefined" )
 	{
@@ -267,19 +629,40 @@ SKETCH.Vec4 = function( rawData )
 	}
 	else
 	{
-		this.rawData = new Float32Array(4);
+		this.rawData = new Float32Array( 3 );
 	}
 };
 
-
-SKETCH.Vec4.prototype = 
+SKETCH.Vec3.random = function( min, max )
 {
-	constructor: SKETCH.Vec4,
+	min = min || 0;
+	max = max || 1.0;
+
+	d = max - min;
+
+	return new SKETCH.Vec4([
+		min + d * Math.random(),
+		min + d * Math.random(),
+		min + d * Math.random()
+	])
+};
+
+SKETCH.Vec3.prototype = 
+{
+	constructor: SKETCH.Vec3,
 
 	set: function( value )
 	{
-		if( value.constructor !== Float32Array )
-			throw new Error( "must be the Float32Array" );
+		if( value.constructor == SKETCH.Vec3 ||
+			value.constructor == SKETCH.Vec4 )
+		{
+			this.set( value.rawData );
+			return;
+		}
+
+		if( value.constructor !== Float32Array && 
+			value.constructor !== Array )
+			throw new Error( "unrecognized constructor, cannot convert Vec3" );
  
 		this.rawData = new Float32Array(4);
 
@@ -296,10 +679,263 @@ SKETCH.Vec4.prototype =
 	set y( value ){ this.rawData[1] = value }, 
 
 	get z(){ return this.rawData[2] },
+	set z( value ){ this.rawData[2] = value },
+
+	length: function()
+	{
+		var x = this.x,
+			y = this.y,
+			z = this.z;
+
+		return Math.sqrt( x*x + y*y + z*z );
+	},
+
+	add: function( v )
+	{
+		this.x += v.x;
+		this.y += v.y;
+		this.z += v.z;
+	},
+
+	sub: function( v )
+	{
+		this.x -= v.x;
+		this.y -= v.y;
+		this.z -= v.z;
+	},
+
+	mul: function( v )
+	{
+		this.x *= v.x;
+		this.y *= v.y;
+		this.z *= v.z;
+	},
+
+	div: function( v )
+	{
+		this.x /= v.x;
+		this.y /= v.y;
+		this.z /= v.z;
+	},
+
+	scale: function( n )
+	{
+		this.x *= n;
+		this.y *= n;
+		this.z *= n;
+	},
+
+	negate: function()
+	{
+		this.x = -this.x;
+		this.y = -this.y;
+		this.z = -this.z;
+	},
+
+	dot: function( v )
+	{
+		return this.x * v.x + this.y * v.y + this.z * v.z;
+	},
+
+	normalize: function()
+	{
+		var x = this.x,
+			y = this.y,
+			z = this.z;
+
+		var len = x*x + y*y + z*z;
+
+		if( len <= 0 ) return;
+
+		len = 1 / Math.sqrt( len );
+
+		this.x = x * len;
+		this.y = y * len;
+		this.z = z * len;
+	},
+}
+
+
+/*************************************************
+*
+* Vector4( x, y, z, w )
+*
+*************************************************/
+
+SKETCH.Vec4 = function( rawData )
+{
+	if( typeof rawData !== "undefined" )
+	{
+		this.set( rawData );
+	}
+	else
+	{
+		this.rawData = new Float32Array(4);
+	}
+};
+
+SKETCH.Vec4.random = function( min, max )
+{
+	min = min || 0;
+	max = max || 1.0;
+
+	d = max - min;
+
+	return new SKETCH.Vec4([
+		min + d * Math.random(),
+		min + d * Math.random(),
+		min + d * Math.random(),
+		min + d * Math.random()
+	])
+};
+
+
+SKETCH.Vec4.prototype = 
+{
+	constructor: SKETCH.Vec4,
+
+	set: function( value )
+	{
+		if( value.constructor == SKETCH.Vec3 ||
+			value.constructor == SKETCH.Vec4 )
+		{
+			this.set( value.rawData );
+			return;
+		}
+			
+		if( value.constructor !== Float32Array && 
+			value.constructor !== Array )
+			throw new Error( "unrecognized constructor, cannot convert Vec4" );
+ 
+		this.rawData = new Float32Array(4);
+
+		var defaultValues = [ 0, 0, 0, 1 ];
+
+		for( var i = 0; i < 4; i++ )
+		{
+			this.rawData[i] = typeof value[i] !== "undefined" ? value[i] : defaultValues[i];
+		}
+	},
+
+	get x(){ return this.rawData[0] },
+	set x( value ){ this.rawData[0] = value }, 
+
+	get y(){ return this.rawData[1] },
+	set y( value ){ this.rawData[1] = value }, 
+
+	get z(){ return this.rawData[2] },
 	set z( value ){ this.rawData[2] = value }, 
 	
 	get w(){ return this.rawData[3] },
 	set w( value ){ this.rawData[3] = value },
+
+	dot: function( vec4 )
+	{
+		return this.x * vec4.x + this.y * vec4.y + this.z * vec4.z + this.w * vec4.w;
+	},
+
+	add: function( vec4 )
+	{
+		this.x += vec4.x;
+		this.y += vec4.y;
+		this.z += vec4.z;
+		this.w += vec4.w;
+	},
+
+	sub: function( vec4 )
+	{
+		this.x -= vec4.x;
+		this.y -= vec4.y;
+		this.z -= vec4.z;
+		this.w -= vec4.w;
+	},
+
+	mul: function( vec4 )
+	{
+		this.x *= vec4.x;
+		this.y *= vec4.y;
+		this.z *= vec4.z;
+		this.w *= vec4.w;
+	},
+
+	div: function( vec4 )
+	{
+		this.x /= vec4.x;
+		this.y /= vec4.y;
+		this.z /= vec4.z;
+		this.w /= vec4.w;
+	},
+
+	scale: function( value )
+	{
+		this.x *= value;
+		this.y *= value;
+		this.z *= value;
+		this.w *= value;
+	},
+
+	normalize: function()
+	{
+		var x = this.x,
+			y = this.y,
+			z = this.z,
+			w = this.w;
+
+		var len = x*x + y*y + z*z + w*w;
+
+		if( len <= 0 ) return;
+
+		len = 1 / Math.sqrt( len );
+
+		this.x *= len;
+		this.y *= len;
+		this.z *= len;
+		this.w *= len;
+	},
+
+	length: function()
+	{
+		return Math.sqrt(
+			this.x * this.x +
+			this.y * this.y +
+			this.z * this.z +
+			this.w * this.w 
+		)
+	},
+
+	negate: function()
+	{
+		this.x = -this.x;
+		this.y = -this.y;
+		this.z = -this.z;
+		this.w = -this.w;
+	},
+
+	transformMat4: function( m )
+	{
+		var _x = this.x, _y = this.y, _z = this.z, _w = this.w;
+
+		var x = m[0] * _x + m[4] * _y + m[8] * _z + m[12] * _w,
+			y = m[1] * _x + m[5] * _y + m[9] * _z + m[13] * _w,
+			z = m[2] * _x + m[6] * _y + m[10] * _z + m[14] * _w,
+			w = m[3] * _x + m[7] * _y + m[11] * _z + m[15] * _w;
+
+		this.x = x,
+		this.y = y,
+		this.z = z,
+		this.w = w;
+	},
+
+
+	clone: function()
+	{
+		return new SKETCH.Vec4([
+			this.x,
+			this.y, 
+			this.z,
+			this.w
+		]);
+	},
 
 	toString: function()
 	{
@@ -482,6 +1118,7 @@ SKETCH.CanvasRenderer = function( col, row )
 	this.backgroundPixelInfo = null;
 
 	this.colorBuffer = [];
+	this.depthBuffer = new Float32Array( col * row );
 	this.mem = [];
 	this.uniform = [];
 };
@@ -655,6 +1292,8 @@ SKETCH.CanvasRenderer.prototype.rasterize = function( triangle, varying )
 		by = parseInt( triangle[1][1] * h ),
 		cx = parseInt( triangle[2][0] * w ),
 		cy = parseInt( triangle[2][1] * h );
+
+	//console.log( "A(%d,%d), B(%d,%d), C(%d,%d)", ax, ay, bx, by, cx, cy );
 
 	var len = SKETCH.Pixel.rasterize( ax, ay, bx, by, cx, cy, frags );
 

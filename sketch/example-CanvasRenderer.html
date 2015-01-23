@@ -45,11 +45,18 @@
 			var ang = -Math.PI / 2;
 			var buf;
 			var start = 0;
+			var fps;
+			var prevms = 0;
+			var fpsCount = 0;
 
-			var indices = [ 0, 1, 2 ];
+			var indices = [ 
+				0, 1, 2,
+				0, 2, 3 
+			];
 
 			function init()
 			{
+				fps = document.getElementById( "fps" );
 				SKETCH.context2d = global.document.getElementById( "canvas" ).getContext( "2d" );
 
 				var space = 10;
@@ -63,15 +70,22 @@
 				renderer.clearPixel( new AsciiPixel(), "." );
 				renderer.clear();
 
-				var w = 1;
-				var h = 1;
+				var w = 0.2;
+				var h = 0.2;
+
 				buf = new Float32Array([
-					-1.0, 0.5, 0,		1,0,0,		1,0,
-					0, -0.1, 0,		1,0,0,		1,0,
-					0.5, 0.25, 0,		1,0,0,		1,0,
-					0, 0, 0,		1,0,0,		1,0
+					0, 0, 0,		1,0,0,		0,0,
+					w, 0, 0,		0,1,0,		1,0,
+					w, h, 0,		0,0,1,		1,1,
+					0, h, 0,		1,0,1,		0,1
 				]);
 
+				var mat = new Float32Array([
+					1,0,0,0,
+					0,1,0,0,
+					0,0,1,0,
+					0,0,0,1
+				])
 				
 
 				renderer.vertexProgram = function( va, vc, varying )
@@ -80,14 +94,27 @@
 					var color = va[1];
 					var uv = va[2];
 
-					var light = vc[1];
+					varying[0] = color;
+					varying[1] = uv;
 
-					return new Float32Array( [ 0.5 + pos[0] + Math.cos( ang ) / 2, pos[1] + 0.25, pos[2], 1.0 ] );
+					mat[0] = 2;
+					mat[5] = 2;
+					mat[12] = 0.5 + Math.cos( ang ) / 2;
+					mat[13] = 0.25;
+
+					return OP.mat( 
+						new Float32Array([ pos[0], pos[1], pos[2], 1.0 ]), mat );
+
+					// return new Float32Array( [ 0.5 + pos[0] + Math.cos( ang ) / 2, pos[1] + 0.25, pos[2], 1.0 ] );
 				}
 
 				
 				renderer.fragmentProgram = function( x, y, varying )
 				{
+					//console.log( varying );
+
+					return "*";
+
 					return parseInt(x) % 5 ? ( parseInt(y) % 5 ? "-" : "|" ) : "m";
 				};
 
@@ -106,6 +133,11 @@
 			};
 
 			function render(ms){
+
+					if( ++fpsCount % 10 == 0 ) 
+						fps.innerHTML = 1000 / ( ms - prevms );
+
+					prevms = ms;
 
 					SKETCH.context2d.clearRect( 0, 0, SKETCH.context2d.canvas.clientWidth, SKETCH.context2d.canvas.clientHeight );
 					renderer.clear();
@@ -132,6 +164,7 @@
 <body>
 	<div class="wrapper">
 		<canvas width="1024" height="768" id="canvas"></canvas>
+		<div id="fps">60</div>
 	</div>
 </body>
 </html>

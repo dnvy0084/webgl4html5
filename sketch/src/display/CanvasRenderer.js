@@ -191,6 +191,8 @@ SKETCH.CanvasRenderer.prototype.rasterize = function( triangle, varying )
 		cx = parseInt( triangle[2][0] * w ),
 		cy = parseInt( triangle[2][1] * h );
 
+	//console.log( "A(%d,%d), B(%d,%d), C(%d,%d)", ax, ay, bx, by, cx, cy );
+
 	var len = SKETCH.Pixel.rasterize( ax, ay, bx, by, cx, cy, frags );
 
 	for( var i = 0; i < len; i += 2 )

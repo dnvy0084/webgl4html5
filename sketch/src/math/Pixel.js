@@ -6,7 +6,7 @@ SKETCH.Pixel.lineTo = function( ax, ay, bx, by, vector, offset )
 	vector = vector || [];
 	offset = offset || 0;
 
-	var e = 0, p = offset;
+	var e = 0,
 		dx = Math.abs( bx - ax ),
 		dy = Math.abs( by - ay );
 
@@ -20,8 +20,8 @@ SKETCH.Pixel.lineTo = function( ax, ay, bx, by, vector, offset )
 
 		for( ; x != t; x += ix )
 		{
-			vector[ p++ ] = x;
-			vector[ p++ ] = y;
+			vector[ offset++ ] = x;
+			vector[ offset++ ] = y;
 
 			e += dy;
 
@@ -40,20 +40,20 @@ SKETCH.Pixel.lineTo = function( ax, ay, bx, by, vector, offset )
 
 		for( ; y != t; y += ix )
 		{
-			vector[ p++ ] = x;
-			vector[ p++ ] = y;
+			vector[ offset++ ] = x;
+			vector[ offset++ ] = y;
 
 			e += dx;
 
 			if( e << 1 > dy )
 			{
 				x += iy;
-				e += -dy;
+				e -= dy;
 			}
 		}
 	}
 
-	return p;
+	return offset;
 };
 
 
